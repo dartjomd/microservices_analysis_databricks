@@ -62,7 +62,4 @@ jobs:
           dbt test
 
       # cleanup if CI was successful
-      {# - name: Cleanup CI Schema
-        if: success() 
-        run: |
-          dbt run-operation drop_ci_schema --args "{schema_name: staging_ci_${{ github.run_id }}}" #}
+      
