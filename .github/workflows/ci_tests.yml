@@ -11,9 +11,9 @@ jobs:
   run_dbt_tests:
     runs-on: ubuntu-latest
 
-  defaults:
-    run:
-      working-directory: ./dbt_analytics
+    defaults:
+      run:
+        working-directory: ./dbt_analytics
 
     steps:
       # download code
