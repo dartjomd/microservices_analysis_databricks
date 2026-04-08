@@ -36,7 +36,6 @@ jobs:
         run: |
           mkdir -p ~/.dbt
           cat <<EOF > ~/.dbt/profiles.yml
-          
           dbt_analytics:
           outputs:
             ci:
