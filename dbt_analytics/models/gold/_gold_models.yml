@@ -1,0 +1,44 @@
+version: 2
+
+models:
+  - name: mrt_service_health_hourly
+    description: "model for checking service health rate by hour"
+    columns:
+      - name: avg_latency
+        description: "average latency"
+        tests:
+        - dbt_utils.accepted_range:
+            min_value: 0
+            max_value: 60000
+      - name: success_rate
+        description: "percentage of successful logs compared to total logs during that time period"
+        tests:
+        - dbt_utils.accepted_range:
+            min_value: 0
+            max_value: 100
+      - name: report_trunc_time
+        description: "time of report"
+        tests:
+          - model_freshness:
+              max_hours: 12
+              severity: warn
+      - name: max_latency
+        description: "maximal latency during that period of time"
+      - name: error_count
+        description: "how many logs with errors arose during that period of time"
+  
+  - name: mrt_service_error_rate
+    description: "model for checking amount of errors and total records by hour"
+    columns:
+      - name: report_trunc_time
+        description: "time when the data was aggregated"
+        tests:
+          - model_freshness:
+              max_hours: 12
+              severity: warn
+      - name: total_errors
+        tests:
+          - not_null: {severity: warn}
+      - name: total_records
+        tests:
+          - not_null: {severity: warn}

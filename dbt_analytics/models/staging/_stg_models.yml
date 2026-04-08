@@ -1,0 +1,46 @@
+version: 2
+
+models:
+  - name: stg_microservices_logs
+    description: "Staging model for raw microservices logs. Performs initial cleanup, type casting, and extracts metadata from Bronze layer."
+    columns:
+      - name: log_id
+        description: "Primary key. Unique identifier for each log entry."
+        tests:
+          - unique: {severity: error}
+          - not_null: {severity: error}
+
+      - name: service_name
+        description: "The name of the microservice that generated the log."
+        tests:
+          - not_null: {severity: error}
+          - dbt_utils.not_empty_string: {severity: warn}
+
+      - name: status_code
+        description: "HTTP response status code returned by the service."
+        tests:
+          - accepted_values:
+              values: [200, 201, 204, 400, 401, 403, 404, 409, 500, 502, 503, 504]
+              quote: false
+              severity: error
+          - not_null: {severity: warn}
+
+      - name: latency_ms
+        description: "Response time in milliseconds. Used for performance monitoring."
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 60000
+              severity: warn
+          - not_null: {severity: warn}
+
+      - name: _occurred_at
+        description: "Timestamp when the record itself was created."
+        tests:
+          - not_null: {severity: warn}
+
+      - name: _dbt_updated_at
+        description: "Timestamp when the record was loaded into the staging layer by dbt."
+
+      - name: _source_file_path
+        description: "Name of the source file in S3 for audit and lineage tracking."

@@ -1,0 +1,54 @@
+version: 2
+
+models:
+  - name: fct_microservices_logs
+    description: "Silver layer fact table containing processed microservices logs. Joined with dimensions to enable rich analysis."
+    columns:
+      - name: log_id
+        description: "Primary key. MD5 hash generated from service name, status code, and timestamp."
+        tests:
+          - unique: {severity: error}
+          - not_null: {severity: error}
+
+      - name: service_key
+        description: "Foreign key linking to dim_services. Generated via MD5 from the service name."
+        tests:
+          - not_null: {severity: error}
+          - relationships:
+              to: ref('dim_services')
+              field: service_key
+              severity: warn
+
+      - name: status_code
+        description: "Standardized HTTP status code."
+      
+      - name: latency_ms
+        description: "Execution time of the request in milliseconds."
+
+  - name: dim_services
+    description: "Silver layer dimension table containing the unique list of microservices and their attributes."
+    tests:
+      - scd2_overlap:
+          unique_key: service_name
+          effective_to: effective_to
+          effective_from: effective_from
+      - scd2_gap:
+          unique_key: service_name
+          effective_to: effective_to
+          effective_from: effective_from
+          severity: warn
+    columns:
+      - name: service_key
+        description: "Primary key for the dimension table (MD5 hash of service_name)."
+        tests:
+          - unique:
+              where: "is_current = true"
+              severity: error
+          - not_null:
+              severity: error
+
+      - name: service_name
+        description: "The human-readable name of the microservice."
+
+      - name: criticality_tier
+        description: "Service importance level (Tier 1, Tier 2, etc.) derived from SCD2 snapshots."
