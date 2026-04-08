@@ -35,20 +35,17 @@ jobs:
       - name: Setup dbt Profile
         run: |
           mkdir -p ~/.dbt
-          cat <<EOF > ~/.dbt/profiles.yml
-          dbt_analytics:
+          echo "dbt_analytics:
+            target: ci
             outputs:
               ci:
+                type: databricks
                 catalog: s3_learn
                 host: ${{ secrets.DBT_DATABRICKS_HOST }}
                 http_path: ${{ secrets.DBT_DATABRICKS_HTTP_PATH }}
                 schema: staging_ci_${{ github.run_id }}
-                threads: 1
-                token: ${{ secrets.DBT_DATABRICKS_TOKEN }}
-                type: databricks
-            target: ci
-            EOF
-
+                threads: 4
+                token: ${{ secrets.DBT_DATABRICKS_TOKEN }}" > ~/.dbt/profiles.yml
       # debug
       - name: dbt debug
         run: dbt debug
