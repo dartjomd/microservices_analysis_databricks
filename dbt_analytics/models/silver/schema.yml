@@ -27,16 +27,6 @@ models:
 
   - name: dim_services
     description: "Silver layer dimension table containing the unique list of microservices and their attributes."
-    tests:
-      - scd2_overlap:
-          unique_key: service_name
-          effective_to: effective_to
-          effective_from: effective_from
-      - scd2_gap:
-          unique_key: service_name
-          effective_to: effective_to
-          effective_from: effective_from
-          severity: warn
     columns:
       - name: service_key
         description: "Primary key for the dimension table (MD5 hash of service_name)."
@@ -46,6 +36,15 @@ models:
               severity: error
           - not_null:
               severity: error
+          - scd2_overlap:
+              unique_key: service_name
+              effective_to: effective_to
+              effective_from: effective_from
+          - scd2_gap:
+              unique_key: service_name
+              effective_to: effective_to
+              effective_from: effective_from
+              severity: warn
 
       - name: service_name
         description: "The human-readable name of the microservice."
