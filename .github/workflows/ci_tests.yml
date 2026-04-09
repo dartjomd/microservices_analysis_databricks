@@ -60,6 +60,7 @@ jobs:
           dbt seed
           dbt run 
           dbt test
+          dbt test --select test_name:scd2_overlap
 
       # cleanup if CI was successful
       
