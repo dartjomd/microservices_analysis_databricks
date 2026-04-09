@@ -60,7 +60,11 @@ jobs:
           dbt seed
           dbt run 
           dbt test
-          dbt test --select test_name:scd2_overlap
+          dbt freshness
 
       # cleanup if CI was successful
+      - name: Run cleanup schema
+        if: success() 
+        run: |
+            dbt run-operation drop_ci_schema --args "{schema_name: staging_ci_${{ github.run_id }}}"
       
