@@ -91,7 +91,6 @@ jobs:
         run: dbt source freshness
 
       # Cleanup выполняется ВСЕГДА (даже если тесты упали), 
-      # чтобы не оставлять мусор в Databricks
       - name: Run cleanup schema
         if: always() 
         run: |
