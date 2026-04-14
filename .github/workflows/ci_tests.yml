@@ -1,3 +1,5 @@
+name: dbt_ci_check
+
 on:
   push:
     branches:
@@ -14,6 +16,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
+          # Required for git diff to compare branches for SQLFluff and Slim CI
           fetch-depth: 0
 
       - name: Set up Python
@@ -29,11 +32,11 @@ jobs:
         id: get_file_changes
         uses: tj-actions/changed-files@v42
         with:
-          # Это обеспечит работу и в PR, и в обычных пушах
+          # Monitors only SQL files within the models directory
           files: dbt_analytics/models/**/*.sql
 
       - name: Setup dbt Profile
-        # Создаем профиль ДО линтера, так как sqlfluff-dbt он нужен
+        # Create profile before linting, as SQLFluff dbt-templater requires a valid profile
         run: |
           echo "dbt_analytics:
             target: ci
@@ -54,14 +57,16 @@ jobs:
       - name: Run SQLFluff
         if: steps.get_file_changes.outputs.any_changed == 'true'
         run: |
-          # Запускаем из корня, чтобы он видел .sqlfluff
-          # Но передаем список файлов, которые нашел экшен
+          # Lint only changed files to ensure fast CI feedback
+          # Points to the profile created in the project directory
           sqlfluff lint ${{ steps.get_file_changes.outputs.all_changed_files }} \
           --dialect databricks \
           --profiles-dir ./dbt_analytics
 
-      # --- ЛОГИКА SLIM CI ---
+      # --- SLIM CI LOGIC ---
+
       - name: Restore manifest from cache
+        # Skip for main branch; restore for PRs to enable Slim CI comparison
         if: github.ref != 'refs/heads/main' 
         uses: actions/cache/restore@v3
         with:
@@ -72,29 +77,32 @@ jobs:
         working-directory: ./dbt_analytics
         run: |
           if [ "${{ github.ref }}" != "refs/heads/main" ] && [ -f "./target/manifest.json" ]; then
-            echo "Running SLIM CI..."
+            echo "Running SLIM CI (incremental build)..."
             mkdir -p state
             cp ./target/manifest.json ./state/manifest.json
+            # Build only modified models and their downstream dependencies
             dbt build --select state:modified+ --state ./state --defer
           else
-            echo "Running FULL BUILD..."
+            echo "Running FULL BUILD (Main branch or missing manifest)..."
             dbt build
           fi
 
       - name: Cache manifest
+        # Update the main manifest cache only after successful pushes to the main branch
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/cache/save@v3
         with:
           path: ./dbt_analytics/target/manifest.json
           key: dbt-manifest-main
 
+      # --- POST-BUILD CHECKS ---
+
       - name: Check Source Freshness
         run: dbt source freshness
         working-directory: ./dbt_analytics
 
-      # Cleanup выполняется ВСЕГДА (даже если тесты упали), 
       - name: Run cleanup schema
+        # Always run cleanup, even if previous steps failed, to avoid schema clutter in Databricks
         if: always() 
-        run: |
-          dbt run-operation drop_ci_schema --args "{schema_name: staging_ci_${{ github.run_id }}}"
+        run: dbt run-operation drop_ci_schema --args "{schema_name: staging_ci_${{ github.run_id }}}"
         working-directory: ./dbt_analytics
