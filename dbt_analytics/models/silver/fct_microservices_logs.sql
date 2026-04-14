@@ -17,19 +17,24 @@ with incremented_stg_data as (
     from {{ ref('stg_microservices_logs') }}
     {% if is_incremental() %}
 
-        where _occurred_at > (select date_add(max(_occurred_at), -3) from {{ this }})
+        where
+            _occurred_at
+            > (
+                select date_add(max(_date._occurred_at), -3)
+                from {{ this }} as _date
+            )
 
     {% endif %}
 ),
 
 check_service_existance as (
     select
-        log_id,
-        latency_ms,
-        status_code,
-        _occurred_at,
-        _stg_updated_at,
-        _source_file_path,
+        d.log_id,
+        d.latency_ms,
+        d.status_code,
+        d._occurred_at,
+        d._stg_updated_at,
+        d._source_file_path,
 
         case
             when s.service_name is null then "other"
@@ -37,9 +42,9 @@ check_service_existance as (
         end as service_name
 
     from incremented_stg_data as d
-    left join 
-    {{ ref('stg_service_mapping') }} as s
-    on d.service_name = s.service_name
+    left join
+        {{ ref('stg_service_mapping') }} as s
+        on d.service_name = s.service_name
 
 ),
 
@@ -51,48 +56,48 @@ add_md5 as (
 ),
 
 dim_joined_data as (
-    select incr_stg.*, dim.service_category, dim.criticality_tier
+    select
+        incr_stg.*,
+        dim.service_category,
+        dim.criticality_tier
     from add_md5 as incr_stg
     left join {{ ref('dim_services') }} as dim
-        on incr_stg.service_key = dim.service_key
-        and dim.is_current = true
+        on
+            incr_stg.service_key = dim.service_key
+            and dim.is_current = true
 ),
+
 validated_data as (
     select
         *,
 
         -- is_slow flag
-        case
-            when latency_ms > 500 then true
-            else false
-        end as is_slow,
+        coalesce(latency_ms > 500, false) as is_slow,
 
         -- is_corrupted flag
-        case    
-            when
-                status_code is null
-                or
-                latency_ms is null
-                or
-                trim(lower(service_category)) = 'unknown'
-                then true
-            else false
-        end as is_corrupted,
+        coalesce(
+            status_code is null
+            or
+            latency_ms is null
+            or
+            trim(lower(service_category)) = "unknown", false
+        ) as is_corrupted,
 
         -- audit columns
-        {{audit_columns()}}
-        
+        {{ audit_columns() }}
+
     from dim_joined_data
 )
-select 
+
+select
     *,
 
-     case
-        when is_corrupted then 'Data Error' 
-        when status_code between 200 and 299 then 'Success'
-        when status_code between 400 and 499 then 'Client Error'
-        when status_code between 500 and 599 then 'Server Error'
-        else 'Unknown'
+    case
+        when is_corrupted then "Data Error"
+        when status_code between 200 and 299 then "Success"
+        when status_code between 400 and 499 then "Client Error"
+        when status_code between 500 and 599 then "Server Error"
+        else "Unknown"
     end as status_category
 
 from validated_data

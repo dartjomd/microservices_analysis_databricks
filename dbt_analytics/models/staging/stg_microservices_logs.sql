@@ -1,12 +1,13 @@
-
 with raw_logs as (
     select * from {{ source('s3_bronze', 'microservices_logs') }}
 )
+
 select
 
     -- log id
     md5(
-        concat_ws('|',
+        concat_ws(
+            '|',
             coalesce(
                 nullif(lower(trim(cast(service_name as string))), ''),
                 'unknown'
@@ -18,9 +19,12 @@ select
 
     -- status code
     case
-        when try_cast(status_code as int) is null
-            or try_cast(status_code as int) not in (200, 201, 204, 400, 401, 403, 404, 409, 500, 502, 503, 504)
-        then null
+        when
+            try_cast(status_code as int) is null
+            or try_cast(status_code as int) not in (
+                200, 201, 204, 400, 401, 403, 404, 409, 500, 502, 503, 504
+            )
+            then null
         else try_cast(status_code as int)
     end as status_code,
 

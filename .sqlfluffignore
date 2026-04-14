@@ -1,0 +1,8 @@
+# ignore dbt packages
+dbt_packages/
+
+# ignore compiled code
+target/
+
+# ignore logs
+logs/
