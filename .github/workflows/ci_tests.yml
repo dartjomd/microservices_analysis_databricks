@@ -26,13 +26,6 @@ jobs:
         run: |
           pip install dbt-databricks sqlfluff-templater-dbt
 
-      - name: Get changed files
-        id: get_file_changes
-        uses: tj-actions/changed-files@v42
-        with:
-          # Monitors only SQL files within the models directory
-          files: dbt_analytics/models/**/*.sql
-
       - name: Setup dbt Profile
         # Create profile before linting, as SQLFluff dbt-templater requires a valid profile
         run: |
@@ -51,6 +44,15 @@ jobs:
       - name: dbt deps
         run: dbt deps
         working-directory: ./dbt_analytics
+
+      - name: Get changed files
+        id: get_file_changes
+        uses: tj-actions/changed-files@v42
+        with:
+          # Сравниваем текущее состояние ветки с головой main
+          base_sha: main
+          files: |
+            dbt_analytics/models/**/*.sql
 
       - name: List all changed files
         run: |
