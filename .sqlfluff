@@ -1,0 +1,24 @@
+[sqlfluff]
+templater = dbt
+dialect = databricks
+# set project directory
+project_dir = ./dbt_analytics
+
+[sqlfluff:indentation]
+tab_width = 4
+
+[sqlfluff:rules:capitalisation.keywords]
+# key words as lower letters
+capitalisation_policy = lower
+
+[sqlfluff:rules:aliasing.column]
+# 'AS' for aliases
+aliasing_specification = explicit
+
+[sqlfluff:rules:layout.commas]
+# comas at the end of a string
+line_position = trailing
+
+[sqlfluff:templater:dbt]
+project_dir = ./dbt_analytics
+profiles_dir = ./dbt_analytics
