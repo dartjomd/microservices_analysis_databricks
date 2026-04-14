@@ -1,1 +1,1 @@
-select 1 from {{ ref('mrt_service_error_rate') }} limit 10
+select 1 from {{ ref('mrt_service_error_rate') }}
