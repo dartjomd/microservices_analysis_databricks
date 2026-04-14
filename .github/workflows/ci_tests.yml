@@ -52,6 +52,11 @@ jobs:
         run: dbt deps
         working-directory: ./dbt_analytics
 
+      - name: List all changed files
+        run: |
+          echo "Any changed: ${{ steps.get_file_changes.outputs.any_changed }}"
+          echo "All changed files: ${{ steps.get_file_changes.outputs.all_changed_files }}"
+
       - name: Run SQLFluff
         if: steps.get_file_changes.outputs.any_changed == 'true'
         run: |
