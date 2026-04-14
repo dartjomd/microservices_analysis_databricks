@@ -2,11 +2,9 @@ name: dbt_ci_check
 
 on:
   push:
-    branches:
-      - main
+    branches: [ '**' ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
   run_dbt_tests:
