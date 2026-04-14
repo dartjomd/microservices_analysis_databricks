@@ -104,5 +104,6 @@ jobs:
       - name: Run cleanup schema
         # Always run cleanup, even if previous steps failed, to avoid schema clutter in Databricks
         if: always() 
-        run: dbt run-operation drop_ci_schema --args "{schema_name: staging_ci_${{ github.run_id }}}"
+        run: |
+          dbt run-operation drop_ci_schema --args "{schema_name: staging_ci_${{ github.run_id }}}"
         working-directory: ./dbt_analytics
