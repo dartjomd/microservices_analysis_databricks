@@ -57,9 +57,7 @@ jobs:
         run: |
           # Lint only changed files to ensure fast CI feedback
           # Points to the profile created in the project directory
-          sqlfluff lint ${{ steps.get_file_changes.outputs.all_changed_files }} \
-          --dialect databricks \
-          --profiles-dir ./dbt_analytics
+          sqlfluff lint ${{ steps.get_file_changes.outputs.all_changed_files }}
 
       # --- SLIM CI LOGIC ---
 
