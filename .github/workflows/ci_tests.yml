@@ -46,7 +46,7 @@ jobs:
                 catalog: s3_learn
                 host: ${{ secrets.DBT_DATABRICKS_HOST }}
                 http_path: ${{ secrets.DBT_DATABRICKS_HTTP_PATH }}
-                schema: ci_schema_${{ github.run_id }} 
+                schema: silver
                 threads: 4
                 token: ${{ secrets.DBT_DATABRICKS_TOKEN }}" > ./dbt_analytics/profiles.yml
 

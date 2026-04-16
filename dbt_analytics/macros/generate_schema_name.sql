@@ -2,7 +2,7 @@
 
     {# don't apply macro if in CI mode #}
     {%- if target.name == 'ci' -%}
-        {{ target.schema }}
+        {{ "ci_schema_" ~ env_var('GITHUB_RUN_ID', 'local') }}
     {%- else -%}
         {%- if custom_schema_name is none -%}
             {{ target.schema }}
