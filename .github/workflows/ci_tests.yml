@@ -55,9 +55,11 @@ jobs:
         uses: actions/cache/restore@v3
         with:
           path: ./dbt_analytics/target/manifest.json
-          key: dbt-manifest-main
+          # Пробуем найти точный ключ (редко), но главное — restore-keys
+          key: dbt-manifest-main-${{ github.run_id }}
           restore-keys: |
-            dbt-manifest-main
+            dbt-manifest-main-
+          # ^ Это заставит GitHub взять САМЫЙ ПОСЛЕДНИЙ кэш, начинающийся с этой строки
 
       # 2. Запуск сборки
       # Если это PR — запускаем только измененное (Slim CI)
@@ -76,14 +78,14 @@ jobs:
             dbt build
           fi
 
-      # 3. Сохраняем свежий манифест в кэш (только при пуше в main)
-      # Используем действие save (а не просто cache), чтобы перезаписывать кэш в main
+      # --- СОХРАНЕНИЕ (только в main) ---
       - name: Cache manifest
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/cache/save@v3
         with:
           path: ./dbt_analytics/target/manifest.json
-          key: dbt-manifest-main
+          # Добавляем ID запуска, чтобы ключ ВСЕГДА был уникальным и сохранение не падало
+          key: dbt-manifest-main-${{ github.run_id }}
 
       # --- КОНЕЦ ЛОГИКИ SLIM CI ---
 
