@@ -1,10 +1,16 @@
 name: dbt_ci_check
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
-    branches: [ '**' ]
+    branches-ignore:
+      - main # ignore main push to prevent concurrency when PR into main
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   run_dbt_tests:
@@ -37,7 +43,7 @@ jobs:
                 catalog: s3_learn
                 host: ${{ secrets.DBT_DATABRICKS_HOST }}
                 http_path: ${{ secrets.DBT_DATABRICKS_HTTP_PATH }}
-                schema: silver 
+                schema: ci_schema_${{ github.run_id }} 
                 threads: 4
                 token: ${{ secrets.DBT_DATABRICKS_TOKEN }}" > ./dbt_analytics/profiles.yml
 
@@ -104,4 +110,9 @@ jobs:
         run: dbt source freshness
         working-directory: ./dbt_analytics
 
-      
+      - name: Run cleanup schema
+        # Always run cleanup, even if previous steps failed, to avoid schema clutter in Databricks
+        if: always() 
+        run: |
+          dbt run-operation drop_ci_schema --args "{schema_name: staging_ci_${{ github.run_id }}}"
+        working-directory: ./dbt_analytics
