@@ -88,6 +88,8 @@ jobs:
       - name: Run dbt
         working-directory: ./dbt_analytics
         run: |
+          pwd
+          ls -R target || echo "Target folder not found"
           if [ "${{ github.ref }}" != "refs/heads/main" ] && [ -f "./target/manifest.json" ]; then
             echo "Running SLIM CI (incremental build)..."
             mkdir -p state
