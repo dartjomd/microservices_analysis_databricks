@@ -96,7 +96,7 @@ jobs:
         uses: actions/cache/save@v3
         with:
           path: ./dbt_analytics/target/manifest.json
-          # Run_id гарантирует уникальность ключа, чтобы запись в кэш не падала
+          # Run_id гарантирует уникальность ключа, чтобы запись в кэш не падал
           key: dbt-manifest-main-${{ github.run_id }}
 
       # --- POST-BUILD CHECKS ---
