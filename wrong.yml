@@ -1,0 +1,123 @@
+name: dbt_ci_check
+
+on:
+  push:
+    branches:
+      - '**'          # Запускает пайплайн на любой пуш в любой ветке (включая main)
+  pull_request:
+    branches:
+      - main          # Запускает проверку при создании PR в основную ветку
+  workflow_dispatch:  # Позволяет запускать пайплайн вручную кнопкой
+
+concurrency:
+  # Группирует запуски по имени пайплайна и ветке. 
+  # Если в одной ветке запускается два процесса (push и pr), один из них будет отменен.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  run_dbt_tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Required for git diff to compare branches for SQLFluff and Slim CI
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          pip install dbt-databricks sqlfluff-templater-dbt
+
+      - name: Setup dbt Profile
+        # Create profile before linting, as SQLFluff dbt-templater requires a valid profile
+        run: |
+          echo "dbt_analytics:
+            target: ci
+            outputs:
+              ci:
+                type: databricks
+                catalog: s3_learn
+                host: ${{ secrets.DBT_DATABRICKS_HOST }}
+                http_path: ${{ secrets.DBT_DATABRICKS_HTTP_PATH }}
+                schema: silver
+                threads: 4
+                token: ${{ secrets.DBT_DATABRICKS_TOKEN }}" > ./dbt_analytics/profiles.yml
+
+      - name: dbt deps
+        run: dbt deps
+        working-directory: ./dbt_analytics
+
+      - name: Get changed files
+        id: get_file_changes
+        uses: tj-actions/changed-files@v42
+        with:
+          # Сравниваем текущее состояние ветки с головой main
+          base_sha: main
+          files: |
+            dbt_analytics/models/**/*.sql
+
+      - name: List all changed files
+        run: |
+          echo "Any changed: ${{ steps.get_file_changes.outputs.any_changed }}"
+          echo "All changed files: ${{ steps.get_file_changes.outputs.all_changed_files }}"
+
+      - name: Run SQLFluff
+        if: steps.get_file_changes.outputs.any_changed == 'true'
+        run: |
+          # Lint only changed files to ensure fast CI feedback
+          # Points to the profile created in the project directory
+          sqlfluff lint ${{ steps.get_file_changes.outputs.all_changed_files }}
+
+      # --- SLIM CI LOGIC ---
+
+      - name: Restore manifest from cache
+        # Skip for main branch; restore for PRs to enable Slim CI compariso
+        if: github.ref != 'refs/heads/main' 
+        uses: actions/cache/restore@v3
+        with:
+          path: ./dbt_analytics/target/manifest.json
+          key: dbt-manifest-main
+
+      - name: Run dbt
+        working-directory: ./dbt_analytics
+        run: |
+          pwd
+          ls -R target || echo "Target folder not found"
+          if [ "${{ github.ref }}" != "refs/heads/main" ] && [ -f "./target/manifest.json" ]; then
+            echo "Running SLIM CI (incremental build)..."
+            mkdir -p state
+            cp ./target/manifest.json ./state/manifest.json
+            # Build only modified models and their downstream dependencies
+            dbt build --select state:modified+ --state ./state --defer
+          else
+            echo "Running FULL BUILD (Main branch or missing manifest)..."
+            dbt build
+          fi
+
+      - name: Cache manifest
+        # Update the main manifest cache only after successful pushes to the main branch
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@v3
+        with:
+          path: ./dbt_analytics/target/manifest.json
+          key: dbt-manifest-main
+
+      # --- POST-BUILD CHECKS ---
+
+      - name: Check Source Freshness
+        run: dbt source freshness
+        working-directory: ./dbt_analytics
+
+      - name: Run cleanup schema
+        # Always run cleanup, even if previous steps failed, to avoid schema clutter in Databricks
+        if: always() 
+        run: |
+          dbt run-operation drop_ci_schema --args "{schema_name: ci_schema_${{ github.run_id }}}"
+        working-directory: ./dbt_analytics
