@@ -1,16 +1,19 @@
 name: dbt_ci_check
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 on:
   push:
-    branches-ignore:
-      - main # ignore main push to prevent concurrency when PR into main
+    branches:
+      - '**'          # Запускает пайплайн на любой пуш в любой ветке (включая main)
   pull_request:
     branches:
-      - main
+      - main          # Запускает проверку при создании PR в основную ветку
+  workflow_dispatch:  # Позволяет запускать пайплайн вручную кнопкой
+
+concurrency:
+  # Группирует запуски по имени пайплайна и ветке. 
+  # Если в одной ветке запускается два процесса (push и pr), один из них будет отменен.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   run_dbt_tests:
