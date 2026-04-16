@@ -77,7 +77,7 @@ jobs:
           fi
 
       # 3. Сохраняем свежий манифест в кэш (только при пуше в main)
-      # Используем действие save (а не просто cache), чтобы перезаписывать кэш в main
+      # Используем действие save (а не просто cache), чтобы перезаписывать кэш в main.
       - name: Cache manifest
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/cache/save@v3
