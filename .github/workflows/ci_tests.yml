@@ -89,6 +89,19 @@ jobs:
 
       # --- КОНЕЦ ЛОГИКИ SLIM CI ---
 
+      - name: Get changed files
+        id: get_file_changes
+        uses: tj-actions/changed-files@v42
+        with:
+          base_sha: main
+          files: |
+            dbt_analytics/models/**/*.sql
+
+      - name: Run SQLFluff
+        if: steps.get_file_changes.outputs.any_changed == 'true'
+        run: |
+          sqlfluff lint ${{ steps.get_file_changes.outputs.all_changed_files }}
+
       - name: Check Source Freshness
         run: dbt source freshness
 
