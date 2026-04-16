@@ -2,9 +2,14 @@ name: dbt_ci_check
 
 on:
   push:
-    branches: [ '**' ]
+    branches:
+      - main
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
+
+  # manual initialization in github actions
+  workflow_dispatch:
 
 jobs:
   run_dbt_tests:
@@ -37,7 +42,7 @@ jobs:
                 catalog: s3_learn
                 host: ${{ secrets.DBT_DATABRICKS_HOST }}
                 http_path: ${{ secrets.DBT_DATABRICKS_HTTP_PATH }}
-                schema: silver 
+                schema: ci_schema_${{ github.run_id }} 
                 threads: 4
                 token: ${{ secrets.DBT_DATABRICKS_TOKEN }}" > ./dbt_analytics/profiles.yml
 
