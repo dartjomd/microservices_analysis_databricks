@@ -78,7 +78,7 @@ jobs:
       # --- SLIM CI LOGIC ---
 
       - name: Restore manifest from cache
-        # Skip for main branch; restore for PRs to enable Slim CI comparison
+        # Skip for main branch; restore for PRs to enable Slim CI compariso
         if: github.ref != 'refs/heads/main' 
         uses: actions/cache/restore@v3
         with:
