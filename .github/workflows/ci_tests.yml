@@ -25,7 +25,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install dbt-databricks
+          pip install dbt-databricks sqlfluff-templater-dbt
 
       - name: Setup dbt Profile
         run: |
