@@ -57,7 +57,7 @@ jobs:
         with:
           base_sha: main
           files: |
-            models/**/*.sql
+            dbt_analytics/models/**/*.sql
 
       - name: Run SQLFluff
         if: steps.get_file_changes.outputs.any_changed == 'true'
