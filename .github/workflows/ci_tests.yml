@@ -78,16 +78,20 @@ jobs:
             dbt-manifest-main-
 
       - name: Run dbt
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
         working-directory: ./dbt_analytics
         run: |
-          if [ "${{ github.ref }}" != "refs/heads/main" ] && [ -f "target/manifest.json" ]; then
-            echo "Running SLIM CI (incremental build)..."
+          if [ "${{ github.ref_name }}" == "main" ]; then
+            echo "BRANCH IS MAIN: Generating clean manifest..."
+            dbt compile
+          elif [ -f "target/manifest.json" ]; then
+            echo "BRANCH IS PR: Running Slim CI with defer to silver..."
             mkdir -p state
-            # Копируем, чтобы dbt видел манифест и в target, и в state
             cp target/manifest.json state/manifest.json
             dbt build --select state:modified+ --state state --defer
           else
-            echo "Running FULL BUILD (Main branch or missing manifest)..."
+            echo "NO MANIFEST: Running full build..."
             dbt build
           fi
 

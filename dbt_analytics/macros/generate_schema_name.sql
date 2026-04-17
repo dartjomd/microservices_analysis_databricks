@@ -1,13 +1,19 @@
 {% macro generate_schema_name(custom_schema_name, node) -%}
 
-    {# don't apply macro if in CI mode #}
-    {%- if target.name == 'ci' -%}
+    {%- set default_schema = target.schema -%}
+    
+    {# 
+       create ci_schema_{run_id} only if target is CI and we dont push into main:
+       otherwise manifest will have ci_schema_{run_id} instead of silver
+    #}
+    {%- if target.name == 'ci' and env_var('GITHUB_REF_NAME', '') != 'main' -%}
+        
         {{ "ci_schema_" ~ env_var('GITHUB_RUN_ID', 'local') }}
+
     {%- else -%}
-        {%- if custom_schema_name is none -%}
-            {{ target.schema }}
-        {%- else -%}
-            {{ custom_schema_name | trim }}
-        {%- endif -%}
+        
+        {{ custom_schema_name | default(default_schema, true) }}
+        
     {%- endif -%}
+
 {%- endmacro %}
