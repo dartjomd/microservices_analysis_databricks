@@ -2,21 +2,26 @@ name: dbt_ci_check
 
 on:
   push:
-    branches: [ '**' ]
+    branches:
+      - '**'
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   run_dbt_tests:
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: ./dbt_analytics
-
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -25,11 +30,11 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install dbt-databricks
+          pip install dbt-databricks sqlfluff-templater-dbt
 
       - name: Setup dbt Profile
         run: |
-          mkdir -p ~/.dbt
+          # Используем silver как базовую схему для корректного defer
           echo "dbt_analytics:
             target: ci
             outputs:
@@ -38,62 +43,76 @@ jobs:
                 catalog: s3_learn
                 host: ${{ secrets.DBT_DATABRICKS_HOST }}
                 http_path: ${{ secrets.DBT_DATABRICKS_HTTP_PATH }}
-                # Для Slim CI важно, чтобы база (default schema) была продакшн-схемой, 
-                # а макрос уже переопределит её на временную для измененных моделей.
                 schema: silver 
                 threads: 4
-                token: ${{ secrets.DBT_DATABRICKS_TOKEN }}" > ~/.dbt/profiles.yml
+                token: ${{ secrets.DBT_DATABRICKS_TOKEN }}" > ./dbt_analytics/profiles.yml
 
       - name: dbt deps
         run: dbt deps
+        working-directory: ./dbt_analytics
 
-      # --- ЛОГИКА SLIM CI ---
+      - name: Get changed files
+        id: get_file_changes
+        uses: tj-actions/changed-files@v42
+        with:
+          base_sha: main
+          path: dbt_analytics
+          files: |
+            models/**/*.sql
 
-      # 1. Пытаемся восстановить манифест из кэша (только для Pull Requests)
+      - name: Run SQLFluff
+        if: steps.get_file_changes.outputs.any_changed == 'true'
+        working-directory: ./dbt_analytics
+        run: |
+          sqlfluff lint ${{ steps.get_file_changes.outputs.all_changed_files }}
+
+      # --- SLIM CI LOGIC ---
+
       - name: Restore manifest from cache
         if: github.ref != 'refs/heads/main' 
         uses: actions/cache/restore@v3
         with:
           path: ./dbt_analytics/target/manifest.json
-          # Пробуем найти точный ключ (редко), но главное — restore-keys
+          # Используем префикс, чтобы всегда брать САМЫЙ НОВЫЙ манифест из мастера
           key: dbt-manifest-main-${{ github.run_id }}
           restore-keys: |
             dbt-manifest-main-
-          # ^ Это заставит GitHub взять САМЫЙ ПОСЛЕДНИЙ кэш, начинающийся с этой строки
 
-      # 2. Запуск сборки
-      # Если это PR — запускаем только измененное (Slim CI)
-      # Если это Push в main — собираем всё и обновляем кэш
       - name: Run dbt
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        working-directory: ./dbt_analytics
         run: |
-          if [ "${{ github.ref }}" != "refs/heads/main" ] && [ -f "./target/manifest.json" ]; then
-            echo "Running SLIM CI..."
-            # Копируем манифест во временную папку для сравнения, чтобы dbt не запутался
+          if [ "${{ github.ref_name }}" == "main" ]; then
+            echo "BRANCH IS MAIN: Generating clean manifest..."
+            dbt compile
+          elif [ -f "target/manifest.json" ]; then
+            echo "BRANCH IS PR: Running Slim CI with defer to silver..."
             mkdir -p state
-            mv ./target/manifest.json ./state/manifest.json
-            
-            dbt build --select state:modified+ --state ./state --defer
+            cp target/manifest.json state/manifest.json
+            dbt build --select state:modified+ --state state --defer
           else
-            echo "Running FULL BUILD (Main branch or no manifest)..."
+            echo "NO MANIFEST: Running full build..."
             dbt build
           fi
 
-      # --- СОХРАНЕНИЕ (только в main) ---
       - name: Cache manifest
+        # Сохраняем ТОЛЬКО в мастере и только если билд прошел успешно
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/cache/save@v3
         with:
           path: ./dbt_analytics/target/manifest.json
-          # Добавляем ID запуска, чтобы ключ ВСЕГДА был уникальным и сохранение не падало
+          # Run_id гарантирует уникальность ключа, чтобы запись в кэш не падал
           key: dbt-manifest-main-${{ github.run_id }}
 
-      # --- КОНЕЦ ЛОГИКИ SLIM CI ---
+      # --- POST-BUILD CHECKS ---
 
       - name: Check Source Freshness
         run: dbt source freshness
+        working-directory: ./dbt_analytics
 
-      # Cleanup выполняется ВСЕГДА (даже если тесты упали), 
       - name: Run cleanup schema
         if: always() 
         run: |
-          dbt run-operation drop_ci_schema --args "{schema_name: staging_ci_${{ github.run_id }}}"
+          dbt run-operation drop_ci_schema --args "{schema_name: ci_schema_${{ github.run_id }}}"
+        working-directory: ./dbt_analytics
