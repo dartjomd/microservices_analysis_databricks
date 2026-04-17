@@ -57,10 +57,11 @@ jobs:
         with:
           base_sha: main
           files: |
-            dbt_analytics/models/**/*.sql
+            models/**/*.sql
 
       - name: Run SQLFluff
         if: steps.get_file_changes.outputs.any_changed == 'true'
+        working-directory: ./dbt_analytics
         run: |
           sqlfluff lint ${{ steps.get_file_changes.outputs.all_changed_files }}
 
