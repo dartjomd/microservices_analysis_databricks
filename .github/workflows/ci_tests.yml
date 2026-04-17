@@ -56,8 +56,9 @@ jobs:
         uses: tj-actions/changed-files@v42
         with:
           base_sha: main
+          path: dbt_analytics
           files: |
-            dbt_analytics/models/**/*.sql
+            models/**/*.sql
 
       - name: Run SQLFluff
         if: steps.get_file_changes.outputs.any_changed == 'true'
