@@ -4,4 +4,4 @@ profiles.yml
 __pycache__
 .vscode
 logs
-.yser.yml
+.user.yml
