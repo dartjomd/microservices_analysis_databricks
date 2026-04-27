@@ -9,7 +9,7 @@ class Telegram_notifier:
     
     def __init__(self) -> None:
         self.token = os.getenv('TELEGRAM_BOT_TOKEN')
-        self.chat_id = os.getenv('CHAT_ID')
+        self.chat_id = os.getenv('TELEGRAM_CHAT_ID')
 
     def send_telegram_message(self, text: str) -> None:
         data = {'chat_id': self.chat_id, 'text': text}
