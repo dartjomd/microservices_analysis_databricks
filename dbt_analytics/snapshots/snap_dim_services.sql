@@ -10,6 +10,6 @@
     )
 }}
 
-select * from {{ source('s3_bronze', 'services_lookup') }}
+select * from {{ ref('services_lookup') }}
 
 {% endsnapshot %}
