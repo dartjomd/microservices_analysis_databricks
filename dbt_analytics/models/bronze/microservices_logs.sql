@@ -1,34 +1,37 @@
 {% set raw_schema = get_raw_schema('bronze') %}
 
+-- Create schema for pre hook raw data
+-- Create physical table
+-- Load data into pre hook table from S3
 {{ config(
-    materialized='view',
     schema='bronze',
     pre_hook=[
-        "CREATE SCHEMA IF NOT EXISTS " ~ raw_schema,
+        "create schema if not exists " ~ raw_schema,
 
-        "CREATE TABLE IF NOT EXISTS " ~ raw_schema ~ ".microservices_logs_raw (
+        "create table if not exists " ~ raw_schema ~ ".microservices_logs_raw (
             latency_ms bigint,
             service_name string,
             status_code string,
             timestamp string,
             _file_source_name string,
             _ingested_at timestamp
-        ) USING DELTA",
+        ) using delta",
         
-        "COPY INTO " ~ raw_schema ~ ".microservices_logs_raw
-         FROM (
-             SELECT 
+        "copy into " ~ raw_schema ~ ".microservices_logs_raw
+         from (
+             select 
                  latency_ms,
                  service_name,
                  status_code,
                  timestamp,
-                 _metadata.file_path AS _file_source_name,
-                 current_timestamp() AS _ingested_at
-             FROM 's3://de-practice-artjom-s3/landing'
+                 _metadata.file_path as _file_source_name,
+                 current_timestamp() as _ingested_at
+             from 's3://de-practice-artjom-s3/landing'
          )
-         FILEFORMAT = JSON
-         COPY_OPTIONS ('mergeSchema' = 'true')"
+         fileformat = json
+         copy_options ('mergeSchema' = 'true')"
     ]
 ) }}
 
-SELECT * FROM {{ raw_schema }}.microservices_logs_raw
+-- Display data via view
+select * from {{ raw_schema }}.microservices_logs_raw
