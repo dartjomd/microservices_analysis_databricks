@@ -19,7 +19,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install dbt-databricks requests
+          pip install dbt-databricks requests python-dotenv
 
       - name: Setup dbt Profile
         # Используем ту же структуру, что и в docs-workflow, но меняем target на prod
