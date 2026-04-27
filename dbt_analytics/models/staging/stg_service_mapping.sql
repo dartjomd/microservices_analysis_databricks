@@ -5,4 +5,4 @@ select
 
     -- audit columns
     {{ audit_columns() }}
-from {{ source('s3_bronze', 'services_lookup') }}
+from {{ ref('services_lookup') }}

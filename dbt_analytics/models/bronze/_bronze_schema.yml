@@ -1,0 +1,33 @@
+version: 2
+
+models:
+  - name: microservices_logs
+    description: >
+      Raw application logs ingested from S3 in JSON format. 
+      This model represents the entry point for service performance telemetry, 
+      capturing response times and execution status.
+    columns:
+      - name: service_name
+        description: "The unique identifier of the microservice generating the log."
+      - name: status_code
+        description: "The HTTP response status code (e.g., 200, 500)."
+      - name: latency_ms
+        description: "The request processing time measured in milliseconds."
+      - name: timestamp
+        description: "The event occurrence time in ISO-8601 string format."
+      - name: _ingested_at
+        description: "Technical metadata: the UTC timestamp when the record was loaded into the Lakehouse."
+
+  - name: services_lookup
+    description: >
+      A reference catalog of microservices ingested from S3 in CSV format. 
+      Used as a dimension table to enrich logs with service categories and business criticality.
+    columns:
+      - name: service_name
+        description: "Primary key for service identification. Matches the 'service_name' in log files."
+      - name: service_category
+        description: "The functional area of the service (e.g., payment, auth, inventory)."
+      - name: criticality_tier
+        description: "Business importance level (e.g., P0 for mission-critical, P1, P2)."
+      - name: _file_source_name
+        description: "Technical metadata: the full S3 path to the source file for auditability."

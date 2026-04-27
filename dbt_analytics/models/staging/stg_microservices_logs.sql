@@ -1,5 +1,5 @@
 with raw_logs as (
-    select * from {{ source('s3_bronze', 'microservices_logs') }}
+    select * from {{ ref('microservices_logs') }}
 )
 
 select
@@ -41,7 +41,7 @@ select
     end as latency_ms,
 
     try_cast(timestamp as timestamp) as _occurred_at,
-    _source_file as _source_file_path,
+    _file_source_name as _source_file_path,
 
     -- audit columns
     {{ audit_columns() }}

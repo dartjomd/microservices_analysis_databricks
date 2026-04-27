@@ -1,0 +1,36 @@
+name: Scheduled dbt Run with Custom Alerts
+
+on:
+  schedule:
+    - cron: '0 6 * * *' 
+  workflow_dispatch:
+
+jobs:
+  run-and-alert:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          pip install dbt-databricks requests  # добавь библиотеки, нужные твоему скрипту
+
+      - name: Run dbt Build
+        continue-on-error: true # Важно: идем дальше, даже если dbt упал, чтобы скрипт отправил алерт
+        run: |
+          # Твоя команда запуска
+          dbt build --target prod
+
+      - name: Send Custom Telegram Alert
+        if: always() # Запускаем всегда, но внутри скрипта проверим, были ли ошибки
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          # Запуск твоего парсера
+          python path/to/your/DBT_logs_parser.py
