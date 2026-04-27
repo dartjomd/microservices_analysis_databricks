@@ -41,7 +41,7 @@ select
     end as latency_ms,
 
     try_cast(timestamp as timestamp) as _occurred_at,
-    _source_file as _source_file_path,
+    _source_file_path,
 
     -- audit columns
     {{ audit_columns() }}
