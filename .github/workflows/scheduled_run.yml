@@ -2,14 +2,15 @@ name: Scheduled dbt Run with Custom Alerts
 
 on:
   schedule:
-    - cron: '0 6 * * *' 
+    - cron: '0 6 * * *' # Каждый день в 6 утра
   workflow_dispatch:
 
 jobs:
   run-and-alert:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -18,19 +19,38 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install dbt-databricks requests  # добавь библиотеки, нужные твоему скрипту
+          pip install dbt-databricks requests
+
+      - name: Setup dbt Profile
+        # Используем ту же структуру, что и в docs-workflow, но меняем target на prod
+        run: |
+          mkdir -p ~/.dbt
+          echo "dbt_analytics:
+            target: prod
+            outputs:
+              dev:
+                type: databricks
+                catalog: s3_learn
+                host: ${{ secrets.DBT_DATABRICKS_HOST }}
+                http_path: ${{ secrets.DBT_DATABRICKS_HTTP_PATH }}
+                schema: bronze
+                threads: 1
+                token: ${{ secrets.DBT_DATABRICKS_TOKEN }}" > ./dbt_analytics/profiles.yml
 
       - name: Run dbt Build
-        continue-on-error: true # Важно: идем дальше, даже если dbt упал, чтобы скрипт отправил алерт
+        id: dbt_run
+        continue-on-error: true 
+        working-directory: ./dbt_analytics
         run: |
-          # Твоя команда запуска
+          dbt deps
+          # Запускаем полный билд (Bronze + Silver + Gold + Tests)
           dbt build --target prod
 
       - name: Send Custom Telegram Alert
-        if: always() # Запускаем всегда, но внутри скрипта проверим, были ли ошибки
+        if: always() 
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          RUN_RESULTS_PATH: ./dbt_analytics/target/run_results.json
         run: |
-          # Запуск твоего парсера
-          python path/to/your/DBT_logs_parser.py
+          python run.py
