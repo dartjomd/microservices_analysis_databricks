@@ -1,7 +1,7 @@
 version: 2
 
 sources:
-  - name: s3_bronze
+  - name: "{{ target.catalog }}"
     description: "Raw data layer. Data is ingested from S3 buckets using Spark jobs."
     catalog: "{{ target.catalog }}"
     schema: bronze
