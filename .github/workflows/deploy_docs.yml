@@ -26,25 +26,15 @@ jobs:
       - name: Install dependencies
         run: pip install dbt-databricks
 
-      - name: Setup dbt Profile
-        run: |
-          echo "dbt_analytics:
-            target: ci
-            outputs:
-              ci:
-                type: databricks
-                catalog: s3_learn
-                host: ${{ secrets.DBT_DATABRICKS_HOST }}
-                http_path: ${{ secrets.DBT_DATABRICKS_HTTP_PATH }}
-                schema: silver 
-                threads: 4
-                token: ${{ secrets.DBT_DATABRICKS_TOKEN }}" > ./dbt_analytics/profiles.yml
-
       - name: Generate Docs
         working-directory: ./dbt_analytics
+        env:
+          DBT_DATABRICKS_HOST: ${{ secrets.DBT_DATABRICKS_HOST }}
+          DBT_DATABRICKS_HTTP_PATH: ${{ secrets.DBT_DATABRICKS_HTTP_PATH }}
+          DBT_DATABRICKS_TOKEN: ${{ secrets.DBT_DATABRICKS_TOKEN }}
         run: |
           dbt deps
-          dbt docs generate
+          dbt docs generate --target prod
 
       - name: Prepare static files
         run: |

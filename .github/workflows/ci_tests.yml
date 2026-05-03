@@ -32,25 +32,6 @@ jobs:
         run: |
           pip install dbt-databricks sqlfluff-templater-dbt
 
-      - name: Setup dbt Profile
-        run: |
-          # Используем silver как базовую схему для корректного defer
-          echo "dbt_analytics:
-            target: ci
-            outputs:
-              ci:
-                type: databricks
-                catalog: s3_learn
-                host: ${{ secrets.DBT_DATABRICKS_HOST }}
-                http_path: ${{ secrets.DBT_DATABRICKS_HTTP_PATH }}
-                schema: silver 
-                threads: 4
-                token: ${{ secrets.DBT_DATABRICKS_TOKEN }}" > ./dbt_analytics/profiles.yml
-
-      - name: dbt deps
-        run: dbt deps
-        working-directory: ./dbt_analytics
-
       - name: Get changed files
         id: get_file_changes
         uses: tj-actions/changed-files@v42
@@ -81,19 +62,24 @@ jobs:
       - name: Run dbt
         env:
           GITHUB_REF_NAME: ${{ github.ref_name }}
+          DBT_DATABRICKS_HOST: ${{ secrets.DBT_DATABRICKS_HOST }}
+          DBT_DATABRICKS_HTTP_PATH: ${{ secrets.DBT_DATABRICKS_HTTP_PATH }}
+          DBT_DATABRICKS_TOKEN: ${{ secrets.DBT_DATABRICKS_TOKEN }}
         working-directory: ./dbt_analytics
         run: |
+          dbt deps
+          
           if [ "${{ github.ref_name }}" == "main" ]; then
             echo "BRANCH IS MAIN: Generating clean manifest..."
-            dbt compile
+            dbt compile --target prod
           elif [ -f "target/manifest.json" ]; then
             echo "BRANCH IS PR: Running Slim CI with defer to silver..."
             mkdir -p state
             cp target/manifest.json state/manifest.json
-            dbt build --select state:modified+ --state state --defer
+            dbt build --target ci --select state:modified+ --state state --defer
           else
             echo "NO MANIFEST: Running full build..."
-            dbt build
+            dbt build --target ci
           fi
 
       - name: Cache manifest

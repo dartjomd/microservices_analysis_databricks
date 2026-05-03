@@ -1,0 +1,29 @@
+dbt_analytics:
+  target: dev
+  outputs:
+    dev:
+      type: databricks
+      catalog: microservices_dev
+      host: "{{ env_var('DBT_DATABRICKS_HOST') }}"
+      http_path: "{{ env_var('DBT_DATABRICKS_HTTP_PATH') }}"
+      schema: bronze
+      threads: 1
+      token: "{{ env_var('DBT_DATABRICKS_TOKEN') }}"
+
+    ci:
+      type: databricks
+      catalog: microservices_dev
+      host: "{{ env_var('DBT_DATABRICKS_HOST') }}"
+      http_path: "{{ env_var('DBT_DATABRICKS_HTTP_PATH') }}"
+      schema: "ci_schema_{{ env_var('GITHUB_RUN_ID', 'local') }}"
+      threads: 1
+      token: "{{ env_var('DBT_DATABRICKS_TOKEN') }}"
+
+    prod:
+      type: databricks
+      catalog: microservices_prod
+      host: "{{ env_var('DBT_DATABRICKS_HOST') }}"
+      http_path: "{{ env_var('DBT_DATABRICKS_HTTP_PATH') }}"
+      schema: bronze
+      threads: 1
+      token: "{{ env_var('DBT_DATABRICKS_TOKEN') }}"
