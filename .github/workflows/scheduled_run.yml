@@ -22,11 +22,11 @@ jobs:
           pip install dbt-databricks requests python-dotenv
 
       - name: Setup dbt Profile
-        # Используем ту же структуру, что и в docs-workflow, но меняем target на prod
+        # Используем ту же структуру, что и в docs-workflow, но меняем target на dev
         run: |
           mkdir -p ~/.dbt
           echo "dbt_analytics:
-            target: prod
+            target: dev
             outputs:
               dev:
                 type: databricks

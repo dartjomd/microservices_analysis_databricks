@@ -12,3 +12,5 @@ if __name__ == '__main__':
     
     if message:
         notifier.send_telegram_message(message)
+    else:
+        notifier.send_telegram_message('no text')
