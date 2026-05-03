@@ -101,3 +101,4 @@ select
     end as status_category
 
 from validated_data
+{{ is_run_limited() }}

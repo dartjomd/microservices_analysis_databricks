@@ -1,5 +1,5 @@
 with source_data as (
-    select * from {{ ref('snap_dim_services') }}
+    select * from {{ ref('snap_dim_services') }} {{ is_run_limited() }}
 ),
 
 processed as (

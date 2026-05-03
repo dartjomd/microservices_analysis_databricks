@@ -45,4 +45,5 @@ select
 
     -- audit columns
     {{ audit_columns() }}
-from raw_logs;
+from raw_logs
+{{ is_run_limited() }}

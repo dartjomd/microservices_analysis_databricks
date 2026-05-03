@@ -15,3 +15,4 @@ select
     {{ audit_columns() }}
 from {{ ref('mrt_service_health_hourly') }}
 group by report_trunc_time
+{{ is_run_limited() }}

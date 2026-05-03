@@ -16,3 +16,4 @@ select
     {{ audit_columns() }}
 from {{ ref('fct_microservices_logs') }}
 group by service_name
+{{ is_run_limited() }}

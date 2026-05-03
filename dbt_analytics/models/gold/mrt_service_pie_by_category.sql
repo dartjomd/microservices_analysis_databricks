@@ -20,3 +20,4 @@ inner join {{ ref('dim_services') }} as dim
         and fct.is_corrupted = false
         and dim.is_current = true
 group by dim.service_category
+{{ is_run_limited() }}

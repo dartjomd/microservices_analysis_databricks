@@ -32,7 +32,12 @@
              'inferschema' = 'false',
              'mergeschema' = 'true'
          )
-         copy_options ('mergeschema' = 'true')"
+         copy_options (
+             'mergeSchema' = 'true'
+             {% if target.name == 'ci' %}
+             , 'maxFiles' = '5'
+             {% endif %}
+         )"
     ]
 ) }}
 
