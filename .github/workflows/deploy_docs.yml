@@ -14,6 +14,12 @@ permissions:
 jobs:
   build-docs:
     runs-on: ubuntu-latest
+
+    env:
+      DBT_DATABRICKS_HOST: ${{ secrets.DBT_DATABRICKS_HOST }}
+      DBT_DATABRICKS_HTTP_PATH: ${{ secrets.DBT_DATABRICKS_HTTP_PATH }}
+      DBT_DATABRICKS_TOKEN: ${{ secrets.DBT_DATABRICKS_TOKEN }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -28,10 +34,6 @@ jobs:
 
       - name: Generate Docs
         working-directory: ./dbt_analytics
-        env:
-          DBT_DATABRICKS_HOST: ${{ secrets.DBT_DATABRICKS_HOST }}
-          DBT_DATABRICKS_HTTP_PATH: ${{ secrets.DBT_DATABRICKS_HTTP_PATH }}
-          DBT_DATABRICKS_TOKEN: ${{ secrets.DBT_DATABRICKS_TOKEN }}
         run: |
           dbt deps
           dbt docs generate --target prod

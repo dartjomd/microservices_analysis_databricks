@@ -8,6 +8,12 @@ on:
 jobs:
   run-and-alert:
     runs-on: ubuntu-latest
+
+    env:
+      DBT_DATABRICKS_HOST: ${{ secrets.DBT_DATABRICKS_HOST }}
+      DBT_DATABRICKS_HTTP_PATH: ${{ secrets.DBT_DATABRICKS_HTTP_PATH }}
+      DBT_DATABRICKS_TOKEN: ${{ secrets.DBT_DATABRICKS_TOKEN }}
+      
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -25,10 +31,6 @@ jobs:
         id: dbt_run
         continue-on-error: true 
         working-directory: ./dbt_analytics
-        env:
-          DBT_DATABRICKS_HOST: ${{ secrets.DBT_DATABRICKS_HOST }}
-          DBT_DATABRICKS_HTTP_PATH: ${{ secrets.DBT_DATABRICKS_HTTP_PATH }}
-          DBT_DATABRICKS_TOKEN: ${{ secrets.DBT_DATABRICKS_TOKEN }}
         run: |
           dbt deps
           # Запускаем полный билд (Bronze + Silver + Gold + Tests + Snapshot)
