@@ -55,3 +55,11 @@ jobs:
           RUN_RESULTS_PATH: ./dbt_analytics/target/run_results.json
         run: |
           python run.py
+      - name: Debug run_results.json
+        run: |
+          echo "Current directory:"
+          pwd
+          echo "Check if file exists:"
+          ls -l ./dbt_analytics/target/run_results.json
+          echo "--- SHOWING RUN RESULTS (first 50 lines) ---"
+          head -n 50 ./dbt_analytics/target/run_results.json
