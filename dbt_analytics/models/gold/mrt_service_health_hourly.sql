@@ -38,3 +38,4 @@ final_metrics as (
 )
 
 select * from final_metrics
+{{ is_run_limited() }}

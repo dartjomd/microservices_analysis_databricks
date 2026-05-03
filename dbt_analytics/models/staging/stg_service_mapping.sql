@@ -6,3 +6,4 @@ select
     -- audit columns
     {{ audit_columns() }}
 from {{ ref('services_lookup') }}
+{{ is_run_limited() }}

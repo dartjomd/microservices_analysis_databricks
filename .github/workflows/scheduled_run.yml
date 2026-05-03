@@ -45,6 +45,7 @@ jobs:
           dbt deps
           # Запускаем полный билд (Bronze + Silver + Gold + Tests)
           dbt build --target dev
+          dbt snapshot --target dev
 
       - name: Send Custom Telegram Alert
         if: always() 

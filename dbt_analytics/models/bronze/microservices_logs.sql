@@ -3,6 +3,7 @@
 -- Create schema for pre hook raw data
 -- Create physical table
 -- Load data into pre hook table from S3
+-- If CI, load only 5 files AND limit its length
 {{ config(
     schema='bronze',
     pre_hook=[
@@ -29,9 +30,15 @@
              from 's3://de-practice-artjom-s3/landing'
          )
          fileformat = json
-         copy_options ('mergeSchema' = 'true')"
+         copy_options (
+             'mergeSchema' = 'true'
+             {% if target.name == 'ci' %}
+             , 'maxFiles' = '5'
+             {% endif %}
+         )"
     ]
 ) }}
 
 -- Display data via view
 select * from {{ raw_schema }}.microservices_logs_raw
+{{ is_run_limited() }}

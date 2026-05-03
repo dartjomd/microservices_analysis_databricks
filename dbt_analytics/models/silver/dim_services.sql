@@ -37,6 +37,6 @@ placeholder as (
         {{ audit_columns() }}
 )
 
-select * from processed
+select * from processed {{ is_run_limited() }}
 union all
 select * from placeholder
