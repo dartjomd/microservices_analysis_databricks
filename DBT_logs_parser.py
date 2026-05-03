@@ -5,7 +5,12 @@ from typing import Any
 class DBT_logs_parser:
     FLAGS_TO_REPORT: list[str] = ['warn', 'error']
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    LOG_FILE_PATH: str = os.path.join(BASE_DIR, 'dbt_analytics/target/run_results.json')
+    LOG_FILE_PATH: str = os.getenv(
+        'RUN_RESULTS_PATH', 
+        os.path.join(BASE_DIR, 'dbt_analytics/target/run_results.json')
+    )
+
+    print(f"DEBUG: Looking for log file at: {LOG_FILE_PATH}")
 
     @staticmethod
     def get_data_from_json() -> Any:

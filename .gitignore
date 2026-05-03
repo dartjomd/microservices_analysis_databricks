@@ -1,5 +1,4 @@
 .venv
-profiles.yml
 .env
 __pycache__
 .vscode
