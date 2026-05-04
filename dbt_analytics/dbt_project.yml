@@ -38,4 +38,9 @@ snapshots:
   dbt_analytics:
     +target_catalog: "{{ target.catalog }}"
     +target_schema: silver
-    +tags: "silver"
+
+snapshots:
+  dbt_analytics:
+    +target_catalog: "{{ target.catalog }}"
+    # Если мы в CI, используем общую CI схему, если нет — silver
+    +target_schema: "{{ 'silver' if target.name != 'ci' else target.schema }}"
