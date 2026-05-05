@@ -84,7 +84,7 @@ jobs:
           echo "Step 2: Running Transformations..."
           if [ "${{ github.ref_name }}" == "main" ]; then
             echo "BRANCH IS MAIN: Generating clean manifest..."
-            dbt compile --target prod
+            dbt compile --target prod --no-partial-parse
           elif [ -f "target/manifest.json" ]; then
             echo "BRANCH IS PR: Running Slim CI with defer to prod..."
             mkdir -p state
