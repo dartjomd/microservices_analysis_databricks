@@ -88,7 +88,8 @@ jobs:
           elif [ -f "target/manifest.json" ]; then
             echo "BRANCH IS PR: Running Slim CI with defer to prod..."
             mkdir -p state
-            cp target/manifest.json state/manifest.json
+            cp target/manifest.json state/manifest.json  # это prod манифест = baseline
+            dbt compile --target ci --no-partial-parse    # генерируем ТЕКУЩИЙ манифест
             dbt build --target ci --select state:modified+ --state state --defer --no-partial-parse
           else
             echo "NO MANIFEST: Running full build..."
