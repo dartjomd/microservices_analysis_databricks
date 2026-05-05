@@ -89,7 +89,7 @@ jobs:
             echo "BRANCH IS PR: Running Slim CI with defer to prod..."
             mkdir -p state
             cp target/manifest.json state/manifest.json
-            dbt build --target ci --select state:modified+ --state state --defer
+            dbt build --target ci --select state:modified+ --state state --defer --no-partial-parse
           else
             echo "NO MANIFEST: Running full build..."
             dbt build --target ci

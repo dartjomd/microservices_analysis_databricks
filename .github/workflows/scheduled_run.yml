@@ -33,7 +33,11 @@ jobs:
         working-directory: ./dbt_analytics
         run: |
           dbt deps
-          # Запускаем полный билд (Bronze + Silver + Gold + Tests + Snapshot)
+          
+          echo "Step 1: Ingesting new data from S3 to Bronze..."
+          dbt run-operation load_all_sources --target prod
+          
+          echo "Step 2: Building Medallion layers (Silver -> Gold)..."
           dbt build --target prod
 
       - name: Send Custom Telegram Alert
