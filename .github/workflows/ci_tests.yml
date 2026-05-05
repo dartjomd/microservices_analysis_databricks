@@ -92,7 +92,7 @@ jobs:
             dbt build --target ci --select state:modified+ --state state --defer --no-partial-parse
           else
             echo "NO MANIFEST: Running full build..."
-            dbt build --target ci
+            dbt build --target ci --no-partial-parse
           fi
 
       - name: Cache manifest
