@@ -1,13 +1,17 @@
 version: 2
 
 sources:
-  - name: "{{ target.catalog }}"
+  - name: s3_bronze
     description: "Raw data layer. Data is ingested from S3 buckets using Spark jobs."
-    catalog: "{{ target.catalog }}"
-    schema: bronze
+    schema: >
+      {%- if target.name == 'ci' and env_var('GITHUB_REF_NAME', '') != 'main' -%}
+        {{ "ci_schema_" ~ env_var('GITHUB_RUN_ID', 'local') }}
+      {%- else -%}
+        bronze_raw
+      {%- endif -%}
 
     tables:
-      - name: microservices_logs
+      - name: microservices_logs_raw
         description: "Event logs from microservices containing latency and status codes."
         columns:
           - name: service_name
@@ -22,7 +26,7 @@ sources:
           loaded_at_field: _ingested_at
 
 
-      - name: services_lookup
+      - name: services_lookup_raw
         description: "Reference table for service tiers and categories."
         columns:
           - name: service_name
