@@ -8,7 +8,7 @@
 select
     service_name,
     avg(latency_ms) as avg_latency_ms,
-    count(*) as total_requests
+    count(*) as total_requests,
 
     -- audit columns
     max(_occurred_at) as _data_up_to_at,
