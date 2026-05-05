@@ -9,6 +9,6 @@
     )
 }}
 
-select * from {{ ref('services_lookup') }}
+    select * from {{ ref('services_lookup') }}
 
 {% endsnapshot %}
