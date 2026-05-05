@@ -9,8 +9,8 @@ select
     service_name,
     avg(latency_ms) as avg_latency_ms,
     count(*) as total_requests,
-    'ssss' as extra_field,
-
+    3 as ddd,
+    5 as dssd,
     -- audit columns
     max(_occurred_at) as _data_up_to_at,
     {{ audit_columns() }}

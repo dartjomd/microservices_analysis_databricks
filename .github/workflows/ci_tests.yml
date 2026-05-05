@@ -84,15 +84,15 @@ jobs:
           echo "Step 2: Running Transformations..."
           if [ "${{ github.ref_name }}" == "main" ]; then
             echo "BRANCH IS MAIN: Generating clean manifest..."
-            dbt compile --target prod
+            dbt compile --target prod --no-partial-parse
           elif [ -f "target/manifest.json" ]; then
             echo "BRANCH IS PR: Running Slim CI with defer to prod..."
             mkdir -p state
             cp target/manifest.json state/manifest.json
-            dbt build --target ci --select state:modified+ --state state --defer
+            dbt build --target ci --select state:modified+ --state state --defer --no-partial-parse
           else
             echo "NO MANIFEST: Running full build..."
-            dbt build --target ci
+            dbt build --target ci --no-partial-parse
           fi
 
       - name: Cache manifest
