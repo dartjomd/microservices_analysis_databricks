@@ -72,27 +72,21 @@ jobs:
       - name: Run dbt
         working-directory: ./dbt_analytics
         run: |
-          echo "Step 1: Prep data..."
-          dbt run-operation load_all_sources --target ci
-
           # Если файл восстановился из кэша в папку target
           if [ -f "target/manifest.json" ]; then
             echo "Manifest found! Moving to state folder..."
             mkdir -p master_state
             mv target/manifest.json master_state/manifest.json
             
-            echo "--- DEBUG: What does dbt see as modified? ---"
-            dbt list --select state:modified --state master_state --target ci
-            
             echo "Slim CI: Running build..."
             dbt build \
               --target ci \
-              --select state:modified+ \
+              --select "state:modified.body+" \
               --state master_state \
               --defer \
               --defer-state master_state \
-              --no-partial-parse \
-              --vars '{"compare_mode": true}'
+              --favor-state
+          else
             echo "CRITICAL: Manifest NOT FOUND in target/. Running full build..."
             dbt build --target ci
           fi
