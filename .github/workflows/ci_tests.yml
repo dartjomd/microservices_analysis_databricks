@@ -75,53 +75,42 @@ jobs:
           dbt run-operation load_all_sources --target ci
 
           echo "Step 2: Running Transformations..."
-
+          
           if [ "${{ github.ref_name }}" == "main" ]; then
-            echo "BRANCH IS MAIN: Generating baseline manifest..."
-            # Генерируем манифест для будущих PR. 
-            # Важно: используем prod, чтобы defer в PR ссылался на продакшн-схемы
+            echo "BRANCH IS MAIN: Refreshing baseline manifest"
             dbt compile --target prod --no-partial-parse
-            
           elif [ -f "target/manifest.json" ]; then
-            echo "BRANCH IS PR: Running Slim CI..."
+            echo "BRANCH IS PR: Initializing Slim CI"
             
-            # Создаем папку для базового состояния (из мастера)
-            mkdir -p master_state
-            cp target/manifest.json master_state/manifest.json
+            # 1. Переносим манифест из мастера в надежное место
+            mkdir -p state_comp
+            cp target/manifest.json state_comp/manifest.json
             
-            # ОЧИЩАЕМ target, чтобы dbt не сравнивал манифест сам с собой
-            rm -rf target/
+            # 2. Очищаем target, чтобы dbt не запутался
+            rm -rf target
             
-            # Запускаем билд. 
-            # dbt сам скомпилирует текущий код в новую папку target 
-            # и сравнит её с тем, что в master_state
-            dbt build \
-              --target ci \
-              --select state:modified+ \
-              --state master_state \
-              --defer \
-              --defer-state master_state \
-              --no-partial-parse
+            # 3. Запускаем билд одной строкой (чтобы избежать ошибок переноса Bash)
+            dbt build --target ci --select state:modified+ --state state_comp --defer --defer-state state_comp --no-partial-parse
           else
-            echo "NO MANIFEST: Full build..."
+            echo "NO MANIFEST FOUND: Running full build"
             dbt build --target ci
           fi
 
-            - name: Cache manifest
-              if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-              uses: actions/cache/save@v3
-              with:
-                path: ./dbt_analytics/target/manifest.json
-                key: dbt-manifest-main-${{ github.run_id }}
+      - name: Cache manifest
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@v3
+        with:
+          path: ./dbt_analytics/target/manifest.json
+          key: dbt-manifest-main-${{ github.run_id }}
 
-            # --- POST-BUILD CHECKS ---
+      # --- POST-BUILD CHECKS ---
 
-            - name: Check Source Freshness
-              run: dbt source freshness
-              working-directory: ./dbt_analytics
+      - name: Check Source Freshness
+        run: dbt source freshness
+        working-directory: ./dbt_analytics
 
-            - name: Run cleanup schema
-              if: always()
-              run: |
-                dbt run-operation drop_ci_schema --args "{schema_name: ci_schema_${{ github.run_id }}}"
-              working-directory: ./dbt_analytics
+      - name: Run cleanup schema
+        if: always()
+        run: |
+          dbt run-operation drop_ci_schema --args "{schema_name: ci_schema_${{ github.run_id }}}"
+        working-directory: ./dbt_analytics
