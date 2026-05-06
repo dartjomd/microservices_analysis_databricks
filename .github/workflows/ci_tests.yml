@@ -73,7 +73,10 @@ jobs:
         working-directory: ./dbt_analytics
         run: |
           # Если файл восстановился из кэша в папку target
-          if [ -f "target/manifest.json" ]; then
+          if [ "${{ github.ref_name }}" == "main" ]; then
+            echo "BRANCH IS MAIN: Generating clean manifest..."
+            dbt compile --target prod --no-partial-parse
+          elif [ -f "target/manifest.json" ]; then
             echo "Manifest found! Moving to state folder..."
             mkdir -p master_state
             mv target/manifest.json master_state/manifest.json
