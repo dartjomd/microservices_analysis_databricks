@@ -17,12 +17,6 @@ jobs:
   run_dbt_tests:
     runs-on: ubuntu-latest
 
-    env:
-      GITHUB_REF_NAME: ${{ github.ref_name }}
-      DBT_DATABRICKS_HOST: ${{ secrets.DBT_DATABRICKS_HOST }}
-      DBT_DATABRICKS_HTTP_PATH: ${{ secrets.DBT_DATABRICKS_HTTP_PATH }}
-      DBT_DATABRICKS_TOKEN: ${{ secrets.DBT_DATABRICKS_TOKEN }}
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -32,15 +26,11 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.9'
 
       - name: Install dependencies
         run: |
           pip install dbt-databricks sqlfluff-templater-dbt
-
-      - name: Install dbt packages
-        run: dbt deps
-        working-directory: ./dbt_analytics
 
       - name: Get changed files
         id: get_file_changes
@@ -58,68 +48,63 @@ jobs:
           sqlfluff lint ${{ steps.get_file_changes.outputs.all_changed_files }}
 
       # --- SLIM CI LOGIC ---
-      # Восстанавливаем манифест СРАЗУ в state/, чтобы dbt deps и compile
-      # не перезаписали его в target/
 
       - name: Restore manifest from cache
-        if: github.ref != 'refs/heads/main'
+        if: github.ref != 'refs/heads/main' 
         uses: actions/cache/restore@v3
         with:
           path: ./dbt_analytics/target/manifest.json
+          # Используем префикс, чтобы всегда брать САМЫЙ НОВЫЙ манифест из мастера
           key: dbt-manifest-main-${{ github.run_id }}
           restore-keys: |
             dbt-manifest-main-
 
-      - name: Run dbt Logic
+      - name: Run dbt
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          DBT_DATABRICKS_HOST: ${{ secrets.DBT_DATABRICKS_HOST }}
+          DBT_DATABRICKS_HTTP_PATH: ${{ secrets.DBT_DATABRICKS_HTTP_PATH }}
+          DBT_DATABRICKS_TOKEN: ${{ secrets.DBT_DATABRICKS_TOKEN }}
         working-directory: ./dbt_analytics
         run: |
+          dbt deps
+          
+          # Проверяем, существует ли файл манифеста после восстановления из кэша
           if [ "${{ github.ref_name }}" == "main" ]; then
-            TARGET="prod"
-          else
-            TARGET="ci"
-          fi
-
-          echo "Step 1: Loading Bronze data via Macro..."
-          dbt run-operation load_all_sources --target $TARGET
-
-          echo "Step 2: Running Transformations..."
-          if [ "${{ github.ref_name }}" == "main" ]; then
-            echo "BRANCH IS MAIN: Generating clean manifest..."
-            mkdir -p state
-            dbt compile --target prod --no-partial-parse
-
+            echo "--- BRANCH IS MAIN: Generating clean manifest for future runs ---"
+            dbt compile --target prod
+          
           elif [ -f "target/manifest.json" ]; then
-            echo "BRANCH IS PR: Running Slim CI with defer..."
-            # Сохраняем prod манифест из кэша в state/ как baseline
+            echo "--- SLIM CI ACTIVE: Manifest found ---"
             mkdir -p state
             cp target/manifest.json state/manifest.json
-            # Генерируем свежий target/manifest.json с текущим кодом ветки
-            dbt compile --target ci --no-partial-parse
-            # Сравниваем state/ (prod) vs target/ (текущий код)
-            dbt build --target ci --select state:modified+ --state state --defer --no-partial-parse
-
+            
+            # Добавляем --favor-state, чтобы dbt был уверен в выборе
+            dbt build --target ci --select state:modified+ --state state --defer
+          
           else
-            echo "NO MANIFEST: Running full build..."
-            dbt build --target ci --no-partial-parse
+            echo "--- NO MANIFEST FOUND: Falling back to full build ---"
+            # Если это первый запуск или кэш пуст
+            dbt build --target ci
           fi
 
       - name: Cache manifest
-        # Сохраняем ТОЛЬКО из main и только при успешном билде
+        # Сохраняем ТОЛЬКО в мастере и только если билд прошел успешно
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/cache/save@v3
         with:
           path: ./dbt_analytics/target/manifest.json
+          # Run_id гарантирует уникальность ключа, чтобы запись в кэш не падал
           key: dbt-manifest-main-${{ github.run_id }}
 
       # --- POST-BUILD CHECKS ---
 
       - name: Check Source Freshness
-        if: success()
         run: dbt source freshness
         working-directory: ./dbt_analytics
 
       - name: Run cleanup schema
-        if: always() && github.ref != 'refs/heads/main'
+        if: always() 
         run: |
           dbt run-operation drop_ci_schema --args "{schema_name: ci_schema_${{ github.run_id }}}"
         working-directory: ./dbt_analytics
