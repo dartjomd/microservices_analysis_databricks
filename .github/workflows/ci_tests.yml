@@ -32,11 +32,15 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: '3.10'
 
       - name: Install dependencies
         run: |
           pip install dbt-databricks sqlfluff-templater-dbt
+
+      - name: Install dbt packages
+        working-directory: ./dbt_analytics
+        run: dbt deps
 
       - name: Get changed files
         id: get_file_changes
@@ -68,8 +72,6 @@ jobs:
       - name: Run dbt
         working-directory: ./dbt_analytics
         run: |
-          dbt deps
-          
           # Проверяем, существует ли файл манифеста после восстановления из кэша
           if [ "${{ github.ref_name }}" == "main" ]; then
             echo "--- BRANCH IS MAIN: Generating clean manifest for future runs ---"
