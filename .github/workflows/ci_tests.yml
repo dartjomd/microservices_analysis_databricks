@@ -72,7 +72,10 @@ jobs:
         working-directory: ./dbt_analytics
         run: |
           echo "Step 1: Loading Bronze data..."
-          dbt run-operation load_all_sources --target ci
+
+          if [ "${{ github.ref_name }}" != "main" ]; then
+            dbt run-operation load_all_sources --target ci
+          fi
 
           echo "Step 2: Running Transformations..."
           
