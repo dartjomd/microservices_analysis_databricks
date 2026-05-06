@@ -65,7 +65,7 @@ jobs:
         if: github.ref != 'refs/heads/main'
         uses: actions/cache/restore@v3
         with:
-          path: ./dbt_analytics/state/manifest.json
+          path: ./dbt_analytics/target/manifest.json
           key: dbt-manifest-main-${{ github.run_id }}
           restore-keys: |
             dbt-manifest-main-
@@ -85,13 +85,17 @@ jobs:
           echo "Step 2: Running Transformations..."
           if [ "${{ github.ref_name }}" == "main" ]; then
             echo "BRANCH IS MAIN: Generating clean manifest..."
+            mkdir -p state
             dbt compile --target prod --no-partial-parse
 
-          elif [ -f "state/manifest.json" ]; then
+          elif [ -f "target/manifest.json" ]; then
             echo "BRANCH IS PR: Running Slim CI with defer..."
-            # state/manifest.json = prod baseline (из кэша)
-            # dbt compile генерирует свежий target/manifest.json с текущим кодом
+            # Сохраняем prod манифест из кэша в state/ как baseline
+            mkdir -p state
+            cp target/manifest.json state/manifest.json
+            # Генерируем свежий target/manifest.json с текущим кодом ветки
             dbt compile --target ci --no-partial-parse
+            # Сравниваем state/ (prod) vs target/ (текущий код)
             dbt build --target ci --select state:modified+ --state state --defer --no-partial-parse
 
           else
@@ -104,7 +108,7 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/cache/save@v3
         with:
-          path: ./dbt_analytics/state/manifest.json
+          path: ./dbt_analytics/target/manifest.json
           key: dbt-manifest-main-${{ github.run_id }}
 
       # --- POST-BUILD CHECKS ---
