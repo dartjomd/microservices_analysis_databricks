@@ -91,7 +91,12 @@ jobs:
             
             # 2. Очищаем target, чтобы dbt не запутался
             rm -rf target
-            
+            echo "--- DEBUG INFO ---"
+            echo "Current branch: ${{ github.ref_name }}"
+            ls -l state_comp/manifest.json
+            # Проверим, какой хост/схема записаны в манифесте из кэша (первые 500 символов)
+            head -c 500 state_comp/manifest.json
+            echo "--- END DEBUG ---"
             # 3. Запускаем билд одной строкой (чтобы избежать ошибок переноса Bash)
             dbt build --target ci --select state:modified+ --state state_comp --defer --defer-state state_comp --no-partial-parse
           else
