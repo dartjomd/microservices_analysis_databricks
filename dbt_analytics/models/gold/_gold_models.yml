@@ -26,6 +26,7 @@ models:
           - model_freshness:
               arguments:
                 max_hours: 12
+              config:
                 severity: warn
 
       - name: max_latency
@@ -43,16 +44,19 @@ models:
           - model_freshness:
               arguments:
                 max_hours: 12
+              config:
                 severity: warn
 
       - name: total_errors
         description: "Count of error logs"
         tests:
           - not_null:
-              severity: warn
+              config:
+                severity: warn
 
       - name: total_records
         description: "Total count of logs"
         tests:
           - not_null:
-              severity: warn
+              config:
+                severity: warn
