@@ -86,7 +86,8 @@ jobs:
               --state master_manifest/target \
               --defer \
               --defer-state master_manifest/target \
-              --no-partial-parse
+              --no-partial-parse \
+              --vars '{"compare_mode": true}'
           else
             echo "No master manifest found, running full build..."
             dbt build --target ci
