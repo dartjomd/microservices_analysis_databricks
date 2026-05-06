@@ -64,7 +64,7 @@ jobs:
         if: github.ref != 'refs/heads/main'
         uses: actions/cache/restore@v3
         with:
-          path: ./dbt_analytics/master_manifest/  # Восстанавливаем в ОТДЕЛЬНУЮ папку
+          path: ./dbt_analytics/target/manifest.json 
           key: dbt-manifest-main-
           restore-keys: |
             dbt-manifest-main-
@@ -75,24 +75,26 @@ jobs:
           echo "Step 1: Prep data..."
           dbt run-operation load_all_sources --target ci
 
-          # Проверяем, прилетел ли манифест из мастера
-          if [ -f "master_manifest/target/manifest.json" ]; then
-            echo "Slim CI: Comparing against master manifest..."
+          # Если файл восстановился из кэша в папку target
+          if [ -f "target/manifest.json" ]; then
+            echo "Manifest found! Moving to state folder..."
+            mkdir -p master_state
+            mv target/manifest.json master_state/manifest.json
             
-            # Важно: указываем --state на папку, где лежит манифест
+            echo "Slim CI: Running build..."
             dbt build \
               --target ci \
               --select state:modified+ \
-              --state master_manifest/target \
+              --state master_state \
               --defer \
-              --defer-state master_manifest/target \
+              --defer-state master_state \
               --no-partial-parse \
               --vars '{"compare_mode": true}'
           else
-            echo "No master manifest found, running full build..."
+            echo "CRITICAL: Manifest NOT FOUND in target/. Running full build..."
             dbt build --target ci
           fi
-
+          
       - name: Cache manifest
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/cache/save@v3
