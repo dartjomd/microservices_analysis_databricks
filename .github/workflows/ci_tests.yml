@@ -81,6 +81,9 @@ jobs:
             mkdir -p master_state
             mv target/manifest.json master_state/manifest.json
             
+            echo "--- DEBUG: What does dbt see as modified? ---"
+            dbt list --select state:modified --state master_state --target ci
+            
             echo "Slim CI: Running build..."
             dbt build \
               --target ci \
@@ -90,7 +93,6 @@ jobs:
               --defer-state master_state \
               --no-partial-parse \
               --vars '{"compare_mode": true}'
-          else
             echo "CRITICAL: Manifest NOT FOUND in target/. Running full build..."
             dbt build --target ci
           fi
