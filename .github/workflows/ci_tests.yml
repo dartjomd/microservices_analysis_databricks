@@ -57,45 +57,40 @@ jobs:
         run: |
           sqlfluff lint ${{ steps.get_file_changes.outputs.all_changed_files }}
 
+
       # --- SLIM CI LOGIC ---
 
       - name: Restore manifest from cache
         if: github.ref != 'refs/heads/main'
         uses: actions/cache/restore@v3
         with:
-          path: ./dbt_analytics/target/manifest.json
-          key: dbt-manifest-main-${{ github.run_id }}
+          path: ./dbt_analytics/target/manifest.json 
+          key: dbt-manifest-main-
           restore-keys: |
             dbt-manifest-main-
 
       - name: Run dbt
         working-directory: ./dbt_analytics
         run: |
-          echo "Step 1: Loading Bronze data..."
-          dbt run-operation load_all_sources --target ci
-
-          echo "Step 2: Running Transformations..."
-          
-          if [ "${{ github.ref_name }}" == "main" ]; then
-            echo "BRANCH IS MAIN: Refreshing baseline manifest"
-            dbt compile --target prod --no-partial-parse
-          elif [ -f "target/manifest.json" ]; then
-            echo "BRANCH IS PR: Initializing Slim CI"
+          # Если файл восстановился из кэша в папку target
+          if [ -f "target/manifest.json" ]; then
+            echo "Manifest found! Moving to state folder..."
+            mkdir -p master_state
+            mv target/manifest.json master_state/manifest.json
             
-            # 1. Переносим манифест из мастера в надежное место
-            mkdir -p state_comp
-            cp target/manifest.json state_comp/manifest.json
-            
-            # 2. Очищаем target, чтобы dbt не запутался
-            rm -rf target
-            
-            # 3. Запускаем билд одной строкой (чтобы избежать ошибок переноса Bash)
-            dbt build --target ci --select state:modified+ --state state_comp --defer --defer-state state_comp --no-partial-parse
+            echo "Slim CI: Running build..."
+            dbt build \
+              --target ci \
+              --select "state:modified.body+" \
+              --state master_state \
+              --defer \
+              --defer-state master_state \
+              --favor-state
           else
-            echo "NO MANIFEST FOUND: Running full build"
+            echo "CRITICAL: Manifest NOT FOUND in target/. Running full build..."
             dbt build --target ci
           fi
-
+          
       - name: Cache manifest
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/cache/save@v3

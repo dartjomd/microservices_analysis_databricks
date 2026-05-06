@@ -8,6 +8,8 @@ test-paths: ["tests"]
 seed-paths: ["seeds"]
 macro-paths: ["macros"]
 snapshot-paths: ["snapshots"]
+flags:
+  state_modified_compare_more_than_just_body: false
 
 clean-targets:
   - "target"
