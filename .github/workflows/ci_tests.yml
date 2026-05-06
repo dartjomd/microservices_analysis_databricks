@@ -57,50 +57,38 @@ jobs:
         run: |
           sqlfluff lint ${{ steps.get_file_changes.outputs.all_changed_files }}
 
+
       # --- SLIM CI LOGIC ---
 
       - name: Restore manifest from cache
         if: github.ref != 'refs/heads/main'
         uses: actions/cache/restore@v3
         with:
-          path: ./dbt_analytics/target/manifest.json
-          key: dbt-manifest-main-${{ github.run_id }}
+          path: ./dbt_analytics/master_manifest/  # Восстанавливаем в ОТДЕЛЬНУЮ папку
+          key: dbt-manifest-main-
           restore-keys: |
             dbt-manifest-main-
 
       - name: Run dbt
         working-directory: ./dbt_analytics
         run: |
-          echo "Step 1: Loading Bronze data..."
+          echo "Step 1: Prep data..."
+          dbt run-operation load_all_sources --target ci
 
-          if [ "${{ github.ref_name }}" != "main" ]; then
-            dbt run-operation load_all_sources --target ci
-          fi
-
-          echo "Step 2: Running Transformations..."
-          
-          if [ "${{ github.ref_name }}" == "main" ]; then
-            echo "BRANCH IS MAIN: Refreshing baseline manifest"
-            dbt compile --target prod --no-partial-parse
-          elif [ -f "target/manifest.json" ]; then
-            echo "BRANCH IS PR: Initializing Slim CI"
+          # Проверяем, прилетел ли манифест из мастера
+          if [ -f "master_manifest/target/manifest.json" ]; then
+            echo "Slim CI: Comparing against master manifest..."
             
-            # 1. Переносим манифест из мастера в надежное место
-            mkdir -p state_comp
-            cp target/manifest.json state_comp/manifest.json
-            
-            # 2. Очищаем target, чтобы dbt не запутался
-            rm -rf target
-            echo "--- DEBUG INFO ---"
-            echo "Current branch: ${{ github.ref_name }}"
-            ls -l state_comp/manifest.json
-            # Проверим, какой хост/схема записаны в манифесте из кэша (первые 500 символов)
-            head -c 500 state_comp/manifest.json
-            echo "--- END DEBUG ---"
-            # 3. Запускаем билд одной строкой (чтобы избежать ошибок переноса Bash)
-            dbt build --target ci --select state:modified+ --state state_comp --defer --defer-state state_comp --no-partial-parse
+            # Важно: указываем --state на папку, где лежит манифест
+            dbt build \
+              --target ci \
+              --select state:modified+ \
+              --state master_manifest/target \
+              --defer \
+              --defer-state master_manifest/target \
+              --no-partial-parse
           else
-            echo "NO MANIFEST FOUND: Running full build"
+            echo "No master manifest found, running full build..."
             dbt build --target ci
           fi
 
