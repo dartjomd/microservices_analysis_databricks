@@ -71,62 +71,57 @@ jobs:
       - name: Run dbt
         working-directory: ./dbt_analytics
         run: |
-          echo "Step 1: Loading Bronze data via Macro..."
+          echo "Step 1: Loading Bronze data..."
           dbt run-operation load_all_sources --target ci
 
           echo "Step 2: Running Transformations..."
 
           if [ "${{ github.ref_name }}" == "main" ]; then
-            echo "BRANCH IS MAIN: Generating clean manifest..."
-            # На main компилируем с --target prod.
-            # Этот манифест станет baseline для PR веток.
+            echo "BRANCH IS MAIN: Generating baseline manifest..."
+            # Генерируем манифест для будущих PR. 
+            # Важно: используем prod, чтобы defer в PR ссылался на продакшн-схемы
             dbt compile --target prod --no-partial-parse
-
+            
           elif [ -f "target/manifest.json" ]; then
-            echo "BRANCH IS PR: Running Slim CI with defer to prod..."
-            mkdir -p state
-            mkdir -p defer-state
-
-            # state/ — prod манифест из кэша, используется для state:modified
-            cp target/manifest.json state/manifest.json
-            # defer-state/ — тот же prod манифест, используется для --defer
-            # (чтобы dbt знал где лежат prod таблицы для неизменённых моделей)
-            cp target/manifest.json defer-state/manifest.json
-
-            # Компилируем с --target prod чтобы catalog совпадал с baseline.
-            # state:modified сравнивает compiled SQL — catalog должен быть одинаковым.
-            dbt compile --target prod --no-partial-parse
-
-            # Build запускаем с --target ci — изменённые модели пишутся в ci схему.
-            # --defer + --defer-state указывают откуда брать prod таблицы для неизменённых.
+            echo "BRANCH IS PR: Running Slim CI..."
+            
+            # Создаем папку для базового состояния (из мастера)
+            mkdir -p master_state
+            cp target/manifest.json master_state/manifest.json
+            
+            # ОЧИЩАЕМ target, чтобы dbt не сравнивал манифест сам с собой
+            rm -rf target/
+            
+            # Запускаем билд. 
+            # dbt сам скомпилирует текущий код в новую папку target 
+            # и сравнит её с тем, что в master_state
             dbt build \
               --target ci \
               --select state:modified+ \
-              --state state \
+              --state master_state \
               --defer \
-              --defer-state defer-state \
+              --defer-state master_state \
               --no-partial-parse
-
           else
-            echo "NO MANIFEST: Falling back to full build..."
-            dbt build --target ci --no-partial-parse
+            echo "NO MANIFEST: Full build..."
+            dbt build --target ci
           fi
 
-      - name: Cache manifest
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/cache/save@v3
-        with:
-          path: ./dbt_analytics/target/manifest.json
-          key: dbt-manifest-main-${{ github.run_id }}
+            - name: Cache manifest
+              if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+              uses: actions/cache/save@v3
+              with:
+                path: ./dbt_analytics/target/manifest.json
+                key: dbt-manifest-main-${{ github.run_id }}
 
-      # --- POST-BUILD CHECKS ---
+            # --- POST-BUILD CHECKS ---
 
-      - name: Check Source Freshness
-        run: dbt source freshness
-        working-directory: ./dbt_analytics
+            - name: Check Source Freshness
+              run: dbt source freshness
+              working-directory: ./dbt_analytics
 
-      - name: Run cleanup schema
-        if: always()
-        run: |
-          dbt run-operation drop_ci_schema --args "{schema_name: ci_schema_${{ github.run_id }}}"
-        working-directory: ./dbt_analytics
+            - name: Run cleanup schema
+              if: always()
+              run: |
+                dbt run-operation drop_ci_schema --args "{schema_name: ci_schema_${{ github.run_id }}}"
+              working-directory: ./dbt_analytics

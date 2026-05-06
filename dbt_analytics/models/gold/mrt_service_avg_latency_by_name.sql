@@ -10,6 +10,7 @@ select
     avg(latency_ms) as avg_latency_ms,
     count(*) as total_requests,
     333 as sdfsdf,
+    333 as dop,
     -- audit columns
     max(_occurred_at) as _data_up_to_at,
     {{ audit_columns() }}
