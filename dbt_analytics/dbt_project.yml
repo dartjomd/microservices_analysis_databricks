@@ -10,6 +10,9 @@ macro-paths: ["macros"]
 snapshot-paths: ["snapshots"]
 flags:
   state_modified_compare_more_than_just_body: false
+  use_managed_iceberg: true
+  use_concurrent_microbatch: true
+  use_materialization_v2: true
 
 clean-targets:
   - "target"
@@ -17,8 +20,8 @@ clean-targets:
 
 models:
   dbt_analytics:
-    +catalog: "{{ target.catalog }}"
-    
+    catalog: "{{ target.catalog }}"
+
     bronze:
       +schema: bronze
       +materialized: view
@@ -38,6 +41,7 @@ models:
 
 snapshots:
   dbt_analytics:
-    +target_catalog: "{{ target.catalog }}"
-    # Если мы в CI, используем общую CI схему, если нет — silver
+    +meta:
+      target_catalog: "{{ target.catalog }}"
+    
     +target_schema: "{{ 'silver' if target.name != 'ci' else target.schema }}"
