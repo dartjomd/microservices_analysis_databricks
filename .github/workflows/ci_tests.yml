@@ -65,6 +65,7 @@ jobs:
           DBT_DATABRICKS_HOST: ${{ secrets.DBT_DATABRICKS_HOST }} 
           DBT_DATABRICKS_HTTP_PATH: "/sql/1.0/warehouses/fake"
           DBT_DATABRICKS_TOKEN: "dummy"
+          DBC_LOG_LEVEL: SEVERE
         working-directory: ./dbt_analytics
         run: |
           sqlfluff lint ${{ steps.get_file_changes.outputs.all_changed_files }} --ignore templating
@@ -119,8 +120,4 @@ jobs:
         run: dbt source freshness
         working-directory: ./dbt_analytics
 
-      - name: Run cleanup schema
-        if: always()
-        run: |
-          dbt run-operation drop_ci_schema --args "{schema_name: ci_schema_${{ github.run_id }}}"
-        working-directory: ./dbt_analytics
+      
