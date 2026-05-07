@@ -117,11 +117,11 @@ jobs:
       # --- POST-BUILD CHECKS ---
 
       - name: Check Source Freshness
-        run: dbt source freshness --target ci
+        run: dbt source freshness --target prod
         working-directory: ./dbt_analytics
 
       - name: Run cleanup schema
         if: always()
         run: |
-          dbt run-operation drop_ci_schema --args "{schema_name: ci_schema_${{ github.run_id }}}"
+          dbt run-operation drop_ci_schema --args "{schema_name: ci_schema_${{ github.run_id }}}" --target ci
         working-directory: ./dbt_analytics

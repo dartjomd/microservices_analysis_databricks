@@ -40,6 +40,10 @@ jobs:
           
           echo "Step 2: Building Medallion layers (Silver -> Gold)..."
           dbt build --target prod
+        
+      - name: Check Source Freshness
+        run: dbt source freshness --target prod
+        working-directory: ./dbt_analytics
 
       - name: Send Custom Telegram Alert
         if: always() 
