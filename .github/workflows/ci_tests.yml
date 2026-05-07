@@ -60,6 +60,10 @@ jobs:
 
       - name: Run SQLFluff
         if: steps.get_file_changes.outputs.any_changed == 'true'
+        env:
+          DBT_DATABRICKS_HOST: "localhost" # Фейк
+          DBT_DATABRICKS_HTTP_PATH: "fake" # Фейк
+          DBT_DATABRICKS_TOKEN: "any_string" # dbt проглотит это и пойдет дальше
         working-directory: ./dbt_analytics
         run: |
           sqlfluff lint ${{ steps.get_file_changes.outputs.all_changed_files }}

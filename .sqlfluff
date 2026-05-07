@@ -22,3 +22,4 @@ line_position = trailing
 [sqlfluff:templater:dbt]
 project_dir = ./dbt_analytics
 profiles_dir = ./dbt_analytics
+target = dev
