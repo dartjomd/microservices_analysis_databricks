@@ -20,7 +20,10 @@ clean-targets:
 
 models:
   dbt_analytics:
-    catalog: "{{ target.catalog }}"
+    +catalog: "{{ target.catalog }}"
+
+    +grants:
+      select: ["data_engineers"]
 
     bronze:
       +schema: bronze
@@ -34,10 +37,14 @@ models:
       +materialized: table
       +schema: silver
       +tags: "silver"
+      +grants:
+        select: "{{ ['data_analysts', 'data_engineers'] if target.name == 'prod' else ['data_engineers'] }}"
     gold:
       +materialized: table
       +schema: gold
       +tags: "gold"
+      +grants:
+        select: "{{ ['data_analysts', 'data_engineers'] if target.name == 'prod' else ['data_engineers'] }}"
 
 snapshots:
   dbt_analytics:

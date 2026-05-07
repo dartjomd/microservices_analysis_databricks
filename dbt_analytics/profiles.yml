@@ -17,7 +17,9 @@ dbt_analytics:
       http_path: "{{ env_var('DBT_DATABRICKS_HTTP_PATH') }}"
       schema: "ci_schema_{{ env_var('GITHUB_RUN_ID', 'local') }}"
       threads: 1
-      token: "{{ env_var('DBT_DATABRICKS_TOKEN') }}"
+      auth_type: oauth
+      client_id: "{{ env_var('DBT_DATABRICKS_CLIENT_ID') }}"
+      client_secret: "{{ env_var('DBT_DATABRICKS_CLIENT_SECRET') }}"
 
     prod:
       type: databricks
@@ -26,4 +28,6 @@ dbt_analytics:
       http_path: "{{ env_var('DBT_DATABRICKS_HTTP_PATH') }}"
       schema: bronze
       threads: 1
-      token: "{{ env_var('DBT_DATABRICKS_TOKEN') }}"
+      auth_type: oauth
+      client_id: "{{ env_var('DBT_DATABRICKS_CLIENT_ID') }}"
+      client_secret: "{{ env_var('DBT_DATABRICKS_CLIENT_SECRET') }}"
