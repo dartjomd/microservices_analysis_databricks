@@ -14,6 +14,7 @@ jobs:
       DBT_DATABRICKS_HTTP_PATH: ${{ secrets.DBT_DATABRICKS_HTTP_PATH }}
       DBT_DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
       DBT_DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+      DBT_DATABRICKS_TOKEN: "not_needed_for_ci"
       
     steps:
       - name: Checkout code
