@@ -3,12 +3,7 @@ version: 2
 sources:
   - name: s3_bronze
     description: "Raw data layer. Data is ingested from S3 buckets using Spark jobs."
-    schema: >
-      {%- if target.name == 'ci' and env_var('GITHUB_REF_NAME', '') != 'main' -%}
-        {{ "ci_schema_" ~ env_var('GITHUB_RUN_ID', 'local') }}
-      {%- else -%}
-        bronze_raw
-      {%- endif -%}
+    schema: bronze_raw
 
     tables:
       - name: microservices_logs_raw
@@ -31,3 +26,8 @@ sources:
         columns:
           - name: service_name
             description: "Primary key for service identification."
+      
+        config:
+          freshness:
+            warn_after: {count: 24, period: hour}
+          loaded_at_field: _ingested_at
