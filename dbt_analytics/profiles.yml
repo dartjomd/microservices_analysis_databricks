@@ -14,7 +14,8 @@ dbt_analytics:
       type: databricks
       catalog: microservices_dev
       host: "{{ env_var('DBT_DATABRICKS_HOST') }}"
-      http_path: "{{ env_var('DBT_DATABRICKS_HTTP_PATH') }}"
+      http_path: "{{ env_var('DBT_DATABRICKS_HTTP_PATH') }}"  # not needed for ci
+      token: "{{ env_var('DBT_DATABRICKS_TOKEN', '') }}"
       schema: "ci_schema_{{ env_var('GITHUB_RUN_ID', 'local') }}"
       threads: 1
       auth_type: oauth
@@ -26,6 +27,7 @@ dbt_analytics:
       catalog: microservices_prod
       host: "{{ env_var('DBT_DATABRICKS_HOST') }}"
       http_path: "{{ env_var('DBT_DATABRICKS_HTTP_PATH') }}"
+      token: "{{ env_var('DBT_DATABRICKS_TOKEN', '') }}" # not needed for ci
       schema: bronze
       threads: 1
       auth_type: oauth
