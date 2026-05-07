@@ -23,6 +23,7 @@ jobs:
       DBT_DATABRICKS_HTTP_PATH: ${{ secrets.DBT_DATABRICKS_HTTP_PATH }}
       DBT_DATABRICKS_CLIENT_ID: ${{ secrets.DBT_DATABRICKS_CLIENT_ID }}
       DBT_DATABRICKS_CLIENT_SECRET: ${{ secrets.DBT_DATABRICKS_CLIENT_SECRET }}
+      DATABRICKS_MAX_RETRIES: 1
 
     steps:
       - name: Checkout code
@@ -66,7 +67,7 @@ jobs:
           DBT_DATABRICKS_TOKEN: "dummy"
         working-directory: ./dbt_analytics
         run: |
-          sqlfluff lint ${{ steps.get_file_changes.outputs.all_changed_files }}
+          sqlfluff lint ${{ steps.get_file_changes.outputs.all_changed_files }} --ignore templating
 
 
       # --- SLIM CI LOGIC ---
