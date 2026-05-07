@@ -120,4 +120,8 @@ jobs:
         run: dbt source freshness --target ci
         working-directory: ./dbt_analytics
 
-      
+      - name: Run cleanup schema
+        if: always()
+        run: |
+          dbt run-operation drop_ci_schema --args "{schema_name: ci_schema_${{ github.run_id }}}"
+        working-directory: ./dbt_analytics
