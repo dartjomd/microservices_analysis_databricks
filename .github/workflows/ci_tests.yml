@@ -30,6 +30,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Debug Environment
+        run: |
+          echo "Host is set: ${{ env.DBT_DATABRICKS_HOST != '' }}"
+          echo "Path is set: ${{ env.DBT_DATABRICKS_HTTP_PATH != '' }}"
+          echo "Client ID is set: ${{ env.DBT_DATABRICKS_CLIENT_ID != '' }}"
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
