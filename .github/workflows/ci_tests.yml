@@ -117,7 +117,7 @@ jobs:
       # --- POST-BUILD CHECKS ---
 
       - name: Check Source Freshness
-        run: dbt source freshness
+        run: dbt -v source freshness --target ci
         working-directory: ./dbt_analytics
 
       
