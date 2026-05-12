@@ -39,7 +39,7 @@ jobs:
           dbt run-operation load_all_sources --target prod
           
           echo "Step 2: Building Medallion layers (Silver -> Gold)..."
-          dbt build --target prod
+          dbt build --target prod --exclude models/operations
         
       - name: Check Source Freshness
         run: dbt source freshness --target prod

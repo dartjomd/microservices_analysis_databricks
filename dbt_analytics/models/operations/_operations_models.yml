@@ -1,0 +1,71 @@
+version: 2
+
+models:
+  # --- SILVER LAYER: DETAILED LOGS ---
+  - name: fct_dbt_audit_logs
+    description: >
+      **Silver Layer / Incremental Fact Table.**
+      Captures granular execution metadata for all SQL statements triggered by the dbt Service Principal. 
+      Data is sourced from Databricks `system.query.history`.
+    columns:
+      - name: query_id
+        description: "Unique statement ID from Databricks (statement_id)."
+        tests:
+          - unique
+          - not_null
+
+      - name: start_time
+        description: "The timestamp when the query execution started."
+        tests:
+          - not_null
+
+      - name: user_name
+        description: "The Service Principal Application ID that executed the query."
+        tests:
+          - not_null
+
+      - name: query_text
+        description: "The raw SQL statement text."
+
+      - name: execution_status
+        description: "Current status of the query (e.g., FINISHED, FAILED)."
+        tests:
+          - accepted_values:
+              values: ['FINISHED', 'FAILED', 'CANCELED']
+
+      - name: duration_seconds
+        description: "Total wall-clock duration of the query in seconds."
+
+      - name: dbt_invocation_id
+        description: "Unique dbt run identifier extracted from SQL comments via RegEx."
+
+  # --- GOLD LAYER: PERFORMANCE MART ---
+  - name: mart_dbt_performance
+    description: >
+      **Gold Layer / Performance & FinOps Mart.**
+      Aggregated view of dbt model performance within the production catalog (`microservices_prod`). 
+      Used for identifying bottlenecks and tracking cloud compute costs.
+    columns:
+      - name: user_name
+        description: "Identity of the executor (Service Principal)."
+        tests:
+          - not_null
+
+      - name: model_name
+        description: >
+          Cleaned 3-tier path of the dbt model (catalog.schema.table). 
+          Filtered to exclude CI/Dev noise and stripped of `__dbt_tmp` suffixes.
+        tests:
+          - not_null
+
+      - name: total_runs
+        description: "Cumulative count of executions for this specific model."
+
+      - name: total_duration_seconds
+        description: "Sum of all execution times in seconds (Rounded)."
+
+      - name: avg_duration
+        description: "Mean execution time per run. Key metric for SLA monitoring."
+
+      - name: last_run_at
+        description: "Timestamp of the most recent execution."
