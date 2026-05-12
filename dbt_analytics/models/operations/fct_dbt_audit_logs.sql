@@ -8,18 +8,23 @@ with raw_history as (
 )
 
 select
-    statement_id as query_id,
-    start_time,
-    executed_by as user_name,
-    statement_text as query_text,
-    execution_status,
-    total_duration_ms / 1000 as duration_seconds,
-    total_task_duration_ms / 1000 as compute_seconds,
-    compute.warehouse_id as warehouse_id,
-    regexp_extract(statement_text, 'invocation_id: ([a-z0-9-]+)', 1) as dbt_invocation_id
-from raw_history
-where executed_by = 'e97e7013-64c4-41c4-92af-b2269ef83ee2' -- service principar application ID
+    rh.statement_id as query_id,
+    rh.start_time,
+    rh.executed_by as user_name,
+    rh.statement_text as query_text,
+    rh.execution_status,
+    rh.compute.warehouse_id, -- noqa: RF01
+    rh.total_duration_ms / 1000 as duration_seconds,
+    rh.total_task_duration_ms / 1000 as compute_seconds,
+    regexp_extract(
+        rh.statement_text,
+        'invocation_id: ([a-z0-9-]+)',
+        1
+    ) as dbt_invocation_id
+from raw_history as rh
+where
+    rh.executed_by = 'e97e7013-64c4-41c4-92af-b2269ef83ee2'
 
-{% if is_incremental() %}
-  and start_time > (select max(start_time) from {{ this }})
-{% endif %}
+    {% if is_incremental() %}
+        and rh.start_time > (select max(t.start_time) from {{ this }} as t)
+    {% endif %}

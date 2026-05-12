@@ -1,66 +1,71 @@
 version: 2
 
 models:
+  # --- SILVER LAYER: DETAILED LOGS ---
+  - name: fct_dbt_audit_logs
+    description: >
+      **Silver Layer / Incremental Fact Table.**
+      Captures granular execution metadata for all SQL statements triggered by the dbt Service Principal. 
+      Data is sourced from Databricks `system.query.history`.
+    columns:
+      - name: query_id
+        description: "Unique statement ID from Databricks (statement_id)."
+        tests:
+          - unique
+          - not_null
+
+      - name: start_time
+        description: "The timestamp when the query execution started."
+        tests:
+          - not_null
+
+      - name: user_name
+        description: "The Service Principal Application ID that executed the query."
+        tests:
+          - not_null
+
+      - name: query_text
+        description: "The raw SQL statement text."
+
+      - name: execution_status
+        description: "Current status of the query (e.g., FINISHED, FAILED)."
+        tests:
+          - accepted_values:
+              values: ['FINISHED', 'FAILED', 'CANCELED']
+
+      - name: duration_seconds
+        description: "Total wall-clock duration of the query in seconds."
+
+      - name: dbt_invocation_id
+        description: "Unique dbt run identifier extracted from SQL comments via RegEx."
+
+  # --- GOLD LAYER: PERFORMANCE MART ---
   - name: mart_dbt_performance
     description: >
-      Gold Layer analytical mart used for monitoring dbt model performance and orchestration costs. 
-      It aggregates metadata from Databricks system logs to identify execution bottlenecks 
-      and track FinOps metrics over time.
+      **Gold Layer / Performance & FinOps Mart.**
+      Aggregated view of dbt model performance within the production catalog (`microservices_prod`). 
+      Used for identifying bottlenecks and tracking cloud compute costs.
     columns:
       - name: user_name
-        description: "The identifier (email or Service Principal Application ID) that executed the statement."
+        description: "Identity of the executor (Service Principal)."
         tests:
           - not_null
 
       - name: model_name
         description: >
-          The target dbt model name parsed from the SQL statement text. 
-          Includes the full path: catalog.schema.table.
+          Cleaned 3-tier path of the dbt model (catalog.schema.table). 
+          Filtered to exclude CI/Dev noise and stripped of `__dbt_tmp` suffixes.
         tests:
           - not_null
 
       - name: total_runs
-        description: "Total number of executions for this specific model within the logged period."
+        description: "Cumulative count of executions for this specific model."
 
       - name: total_duration_seconds
-        description: "Cumulative execution time in seconds. Primary metric for identifying high-cost models."
+        description: "Sum of all execution times in seconds (Rounded)."
 
       - name: avg_duration
-        description: "Average execution time per single run."
+        description: "Mean execution time per run. Key metric for SLA monitoring."
 
       - name: last_run_at
-        description: "Timestamp of the most recent execution attempt."
-
-  - name: mart_dbt_performance
-    description: >
-      **Gold Layer / Performance Monitoring Mart.**
-      This model provides a cleaned, high-level view of dbt model execution performance 
-      within the production catalog (`microservices_prod`). 
-      
-      Key features:
-      - **Noise Reduction:** Filters out transient CI/CD schemas and developer sandboxes.
-      - **Path Parsing:** Uses Regex to extract full 3-tier names (catalog.schema.table).
-      - **Deduplication:** Merges metrics for temporary dbt tables (`__dbt_tmp`) into their parent models.
-      - **FinOps Insights:** Aggregates execution time to identify high-cost transformations.
-    columns:
-      - name: user_name
-        description: "The ID of the Service Principal or user who executed the dbt run."
-        tests:
-          - not_null
-
-      - name: model_name
-        description: "Cleaned full path of the production model (e.g., `prod.silver.table`)."
-        tests:
-          - not_null
-
-      - name: total_runs
-        description: "Number of times the model was executed (including incremental inserts/merges)."
-
-      - name: total_duration_seconds
-        description: "Cumulative execution time in seconds. Rounded to 2 decimal places."
-
-      - name: avg_duration
-        description: "Average execution time per run. Used for identifying performance degradation (SLA)."
-
-      - name: last_run_at
-        description: "Timestamp of the most recent execution recorded."
+        description: "Timestamp of the most recent execution."
