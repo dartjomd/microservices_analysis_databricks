@@ -1,0 +1,66 @@
+version: 2
+
+models:
+  - name: mart_dbt_performance
+    description: >
+      Gold Layer analytical mart used for monitoring dbt model performance and orchestration costs. 
+      It aggregates metadata from Databricks system logs to identify execution bottlenecks 
+      and track FinOps metrics over time.
+    columns:
+      - name: user_name
+        description: "The identifier (email or Service Principal Application ID) that executed the statement."
+        tests:
+          - not_null
+
+      - name: model_name
+        description: >
+          The target dbt model name parsed from the SQL statement text. 
+          Includes the full path: catalog.schema.table.
+        tests:
+          - not_null
+
+      - name: total_runs
+        description: "Total number of executions for this specific model within the logged period."
+
+      - name: total_duration_seconds
+        description: "Cumulative execution time in seconds. Primary metric for identifying high-cost models."
+
+      - name: avg_duration
+        description: "Average execution time per single run."
+
+      - name: last_run_at
+        description: "Timestamp of the most recent execution attempt."
+
+  - name: mart_dbt_performance
+    description: >
+      **Gold Layer / Performance Monitoring Mart.**
+      This model provides a cleaned, high-level view of dbt model execution performance 
+      within the production catalog (`microservices_prod`). 
+      
+      Key features:
+      - **Noise Reduction:** Filters out transient CI/CD schemas and developer sandboxes.
+      - **Path Parsing:** Uses Regex to extract full 3-tier names (catalog.schema.table).
+      - **Deduplication:** Merges metrics for temporary dbt tables (`__dbt_tmp`) into their parent models.
+      - **FinOps Insights:** Aggregates execution time to identify high-cost transformations.
+    columns:
+      - name: user_name
+        description: "The ID of the Service Principal or user who executed the dbt run."
+        tests:
+          - not_null
+
+      - name: model_name
+        description: "Cleaned full path of the production model (e.g., `prod.silver.table`)."
+        tests:
+          - not_null
+
+      - name: total_runs
+        description: "Number of times the model was executed (including incremental inserts/merges)."
+
+      - name: total_duration_seconds
+        description: "Cumulative execution time in seconds. Rounded to 2 decimal places."
+
+      - name: avg_duration
+        description: "Average execution time per run. Used for identifying performance degradation (SLA)."
+
+      - name: last_run_at
+        description: "Timestamp of the most recent execution recorded."

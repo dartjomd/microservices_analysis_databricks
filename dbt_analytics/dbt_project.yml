@@ -45,6 +45,10 @@ models:
       +tags: "gold"
       +grants:
         select: "{{ ['data_analysts', 'data_engineers'] if target.name == 'prod' else ['data_engineers'] }}"
+    operations:
+      +catalog: ops_monitoring
+      +schema: auditing
+      +materialized: incremental
 
 snapshots:
   dbt_analytics:
