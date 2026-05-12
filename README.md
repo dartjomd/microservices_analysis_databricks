@@ -53,6 +53,8 @@ To maintain full transparency over pipeline health and cloud expenditures, the p
     * **Noise Filtering:** Implements a "Production-Only" filter to exclude ephemeral CI/CD schemas and developer noise, focusing strictly on business-critical assets.
 * **Resource Governance:** Allows for real-time identification of "expensive" models, enabling proactive optimization (FinOps) and ensuring adherence to internal SLAs.
 
+![Performance Dashboard](docs/images/performance_chart.png)
+
 ---
 
 ### Technical Stack
