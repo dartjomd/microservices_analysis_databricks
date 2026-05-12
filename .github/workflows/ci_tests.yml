@@ -101,7 +101,7 @@ jobs:
               --state master_state \
               --defer \
               --defer-state master_state \
-              --favor-state
+              --favor-state \
               --exclude models/operations
           else
             echo "CRITICAL: Manifest NOT FOUND in target/. Running full build..."
