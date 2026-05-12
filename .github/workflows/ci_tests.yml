@@ -102,6 +102,7 @@ jobs:
               --defer \
               --defer-state master_state \
               --favor-state
+              --exclude models/operations
           else
             echo "CRITICAL: Manifest NOT FOUND in target/. Running full build..."
             dbt build --target ci
